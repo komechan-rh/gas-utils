@@ -65,9 +65,30 @@ export function buildDraftBody(senderName: string, viewingMessage: string, confi
   return `${buildGreeting(senderName, config)}\n\n${viewingMessage}\n\n${buildClosing(config)}`;
 }
 
-export function threadHasExistingDraft(thread: InquiryThread, drafts: InquiryDraft[]): boolean {
-  const threadId = thread.getId();
-  return drafts.some((draft) => draft.getMessage().getThread().getId() === threadId);
+export function buildDraftSubject(config: Pick<InquiryDraftConfig, "organizationName">): string {
+  return `【${config.organizationName}】内見に関して`;
+}
+
+const EMAIL_PATTERN = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}";
+const LABELED_EMAIL_REGEX = new RegExp(`(?:メール(?:アドレス)?|e-?mail)\\s*[:：]\\s*(${EMAIL_PATTERN})`, "i");
+const EMAIL_REGEX = new RegExp(EMAIL_PATTERN);
+
+export function extractInquirerEmail(inquiryBody: string): string {
+  const labeledMatch = inquiryBody.match(LABELED_EMAIL_REGEX);
+  if (labeledMatch) {
+    return labeledMatch[1];
+  }
+
+  const fallbackMatch = inquiryBody.match(EMAIL_REGEX);
+  if (!fallbackMatch) {
+    throw new Error("問い合わせメール本文から問い合わせ者のメールアドレスを取得できませんでした。");
+  }
+
+  return fallbackMatch[0];
+}
+
+export function threadHasExistingDraft(inquirerEmail: string, drafts: InquiryDraft[]): boolean {
+  return drafts.some((draft) => draft.getMessage().getTo() === inquirerEmail);
 }
 
 export function findUnprocessedInquiryThreads(
@@ -83,6 +104,7 @@ export function getOrCreateLabel(name: string): InquiryLabel {
 
 export function createDraftForThread(
   thread: InquiryThread,
+  inquirerEmail: string,
   viewingMessage: string,
   config: InquiryDraftConfig,
 ): void {
@@ -90,7 +112,7 @@ export function createDraftForThread(
   const latestMessage = messages[messages.length - 1];
   const senderName = extractSenderName(latestMessage.getFrom());
 
-  thread.createDraftReply(buildDraftBody(senderName, viewingMessage, config));
+  GmailApp.createDraft(inquirerEmail, buildDraftSubject(config), buildDraftBody(senderName, viewingMessage, config));
 }
 
 export function formatError(error: unknown): string {

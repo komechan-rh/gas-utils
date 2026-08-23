@@ -3,6 +3,7 @@ import { type GenAiConfig, generateInquiryReplyMessage } from "./genai-client";
 import {
   createDraftForThread,
   createEmptyResult,
+  extractInquirerEmail,
   findUnprocessedInquiryThreads,
   formatError,
   getOrCreateLabel,
@@ -70,18 +71,20 @@ function main(): void {
 
     threads.forEach((thread) => {
       try {
-        if (threadHasExistingDraft(thread, drafts)) {
+        const messages = thread.getMessages();
+        const inquiryBody = messages[messages.length - 1].getPlainBody();
+        const inquirerEmail = extractInquirerEmail(inquiryBody);
+
+        if (threadHasExistingDraft(inquirerEmail, drafts)) {
           result.skipped += 1;
           processedLabel.addToThread(thread);
           console.log(`既に下書きが存在するためスキップしました。件名「${thread.getFirstMessageSubject()}」`);
           return;
         }
 
-        const messages = thread.getMessages();
-        const inquiryBody = messages[messages.length - 1].getPlainBody();
         const viewingMessage = generateInquiryReplyMessage(inquiryBody, config.genai);
 
-        createDraftForThread(thread, viewingMessage, config);
+        createDraftForThread(thread, inquirerEmail, viewingMessage, config);
         processedLabel.addToThread(thread);
         result.drafted += 1;
         console.log(`返信の下書きを作成しました。件名「${thread.getFirstMessageSubject()}」`);

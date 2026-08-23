@@ -3,9 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildClosing,
   buildDraftBody,
+  buildDraftSubject,
   buildGreeting,
   buildSearchQuery,
   createEmptyResult,
+  extractInquirerEmail,
   extractSenderName,
   threadHasExistingDraft,
 } from "./inquiry-draft";
@@ -199,29 +201,55 @@ describe("buildDraftBody", () => {
 });
 
 describe("threadHasExistingDraft", () => {
-  it("スレッドIDが一致する下書きがあればtrueを返す", () => {
-    const thread = { getId: () => "thread-1" } as GoogleAppsScript.Gmail.GmailThread;
+  it("宛先が問い合わせ者のメールアドレスと一致する下書きがあればtrueを返す", () => {
     const drafts = [
       {
-        getMessage: () => ({
-          getThread: () => ({ getId: () => "thread-1" }),
-        }),
+        getMessage: () => ({ getTo: () => "taro@example.com" }),
       },
     ] as unknown as GoogleAppsScript.Gmail.GmailDraft[];
 
-    expect(threadHasExistingDraft(thread, drafts)).toBe(true);
+    expect(threadHasExistingDraft("taro@example.com", drafts)).toBe(true);
   });
 
-  it("スレッドIDが一致する下書きがなければfalseを返す", () => {
-    const thread = { getId: () => "thread-1" } as GoogleAppsScript.Gmail.GmailThread;
+  it("宛先が一致する下書きがなければfalseを返す", () => {
     const drafts = [
       {
-        getMessage: () => ({
-          getThread: () => ({ getId: () => "thread-2" }),
-        }),
+        getMessage: () => ({ getTo: () => "other@example.com" }),
       },
     ] as unknown as GoogleAppsScript.Gmail.GmailDraft[];
 
-    expect(threadHasExistingDraft(thread, drafts)).toBe(false);
+    expect(threadHasExistingDraft("taro@example.com", drafts)).toBe(false);
+  });
+});
+
+describe("buildDraftSubject", () => {
+  it("組織名を角括弧で囲み固定文言を続けた件名を組み立てる", () => {
+    expect(buildDraftSubject({ organizationName: "example organization" })).toBe(
+      "【example organization】内見に関して",
+    );
+  });
+});
+
+describe("extractInquirerEmail", () => {
+  it("ラベル付きの行からメールアドレスを取り出す", () => {
+    const body = "お名前: 山田太郎\nメールアドレス: taro@example.com\nご希望日: 未定";
+
+    expect(extractInquirerEmail(body)).toBe("taro@example.com");
+  });
+
+  it("Eメールなどのラベル表記にも対応する", () => {
+    const body = "Eメール：taro@example.com";
+
+    expect(extractInquirerEmail(body)).toBe("taro@example.com");
+  });
+
+  it("ラベルがない場合は本文中の最初のメールアドレスを取り出す", () => {
+    const body = "お問い合わせありがとうございます。taro@example.com までご連絡ください。";
+
+    expect(extractInquirerEmail(body)).toBe("taro@example.com");
+  });
+
+  it("メールアドレスが見つからない場合はエラーを投げる", () => {
+    expect(() => extractInquirerEmail("メールアドレスの記載がありません。")).toThrow();
   });
 });
