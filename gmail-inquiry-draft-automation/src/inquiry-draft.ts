@@ -31,14 +31,6 @@ export function buildSearchQuery(inquirySubjectKeyword: string, processedLabelNa
   return `subject:"${inquirySubjectKeyword}" -label:"${processedLabelName}"`;
 }
 
-export function extractSenderName(fromHeader: string): string {
-  const match = fromHeader.match(/^"?([^"<]*)"?\s*<[^>]+>$/);
-  if (!match) {
-    return "";
-  }
-  return match[1].trim();
-}
-
 export function buildGreeting(senderName: string, config: InquiryDraftConfig): string {
   const salutation = senderName || "お客様";
 
@@ -65,9 +57,53 @@ export function buildDraftBody(senderName: string, viewingMessage: string, confi
   return `${buildGreeting(senderName, config)}\n\n${viewingMessage}\n\n${buildClosing(config)}`;
 }
 
-export function threadHasExistingDraft(thread: InquiryThread, drafts: InquiryDraft[]): boolean {
-  const threadId = thread.getId();
-  return drafts.some((draft) => draft.getMessage().getThread().getId() === threadId);
+export function buildDraftSubject(config: Pick<InquiryDraftConfig, "organizationName">): string {
+  return `【${config.organizationName}】内見に関して`;
+}
+
+const EMAIL_PATTERN = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}";
+const EMAIL_LABEL_PATTERN = "メール(?:アドレス)?|e-?mail";
+const LABELED_EMAIL_REGEX = new RegExp(
+  `(?:\\[(?:${EMAIL_LABEL_PATTERN})\\]|(?:${EMAIL_LABEL_PATTERN})\\s*[:：])\\s*(${EMAIL_PATTERN})`,
+  "i",
+);
+const EMAIL_REGEX = new RegExp(EMAIL_PATTERN);
+
+export function extractInquirerEmail(inquiryBody: string): string {
+  const labeledMatch = inquiryBody.match(LABELED_EMAIL_REGEX);
+  if (labeledMatch) {
+    return labeledMatch[1];
+  }
+
+  const fallbackMatch = inquiryBody.match(EMAIL_REGEX);
+  if (!fallbackMatch) {
+    throw new Error("問い合わせメール本文から問い合わせ者のメールアドレスを取得できませんでした。");
+  }
+
+  return fallbackMatch[0];
+}
+
+const NAME_LABEL_PATTERN = "お名前|氏名|名前|name";
+const LABELED_NAME_REGEX = new RegExp(
+  `(?:\\[(?:${NAME_LABEL_PATTERN})\\]|(?:${NAME_LABEL_PATTERN})\\s*[:：])\\s*(.+)`,
+  "i",
+);
+
+export function extractInquirerName(inquiryBody: string): string {
+  const match = inquiryBody.match(LABELED_NAME_REGEX);
+  if (!match) {
+    return "";
+  }
+
+  return match[1].trim();
+}
+
+export function buildDraftRecipient(inquirerEmail: string, inquirerName: string): string {
+  return inquirerName ? `"${inquirerName}" <${inquirerEmail}>` : inquirerEmail;
+}
+
+export function threadHasExistingDraft(recipient: string, drafts: InquiryDraft[]): boolean {
+  return drafts.some((draft) => draft.getMessage().getTo() === recipient);
 }
 
 export function findUnprocessedInquiryThreads(
@@ -82,15 +118,12 @@ export function getOrCreateLabel(name: string): InquiryLabel {
 }
 
 export function createDraftForThread(
-  thread: InquiryThread,
+  recipient: string,
+  inquirerName: string,
   viewingMessage: string,
   config: InquiryDraftConfig,
 ): void {
-  const messages = thread.getMessages();
-  const latestMessage = messages[messages.length - 1];
-  const senderName = extractSenderName(latestMessage.getFrom());
-
-  thread.createDraftReply(buildDraftBody(senderName, viewingMessage, config));
+  GmailApp.createDraft(recipient, buildDraftSubject(config), buildDraftBody(inquirerName, viewingMessage, config));
 }
 
 export function formatError(error: unknown): string {
