@@ -31,14 +31,6 @@ export function buildSearchQuery(inquirySubjectKeyword: string, processedLabelNa
   return `subject:"${inquirySubjectKeyword}" -label:"${processedLabelName}"`;
 }
 
-export function extractSenderName(fromHeader: string): string {
-  const match = fromHeader.match(/^"?([^"<]*)"?\s*<[^>]+>$/);
-  if (!match) {
-    return "";
-  }
-  return match[1].trim();
-}
-
 export function buildGreeting(senderName: string, config: InquiryDraftConfig): string {
   const salutation = senderName || "お客様";
 
@@ -87,8 +79,23 @@ export function extractInquirerEmail(inquiryBody: string): string {
   return fallbackMatch[0];
 }
 
-export function threadHasExistingDraft(inquirerEmail: string, drafts: InquiryDraft[]): boolean {
-  return drafts.some((draft) => draft.getMessage().getTo() === inquirerEmail);
+const LABELED_NAME_REGEX = /(?:お名前|氏名|名前|name)\s*[:：]\s*(.+)/i;
+
+export function extractInquirerName(inquiryBody: string): string {
+  const match = inquiryBody.match(LABELED_NAME_REGEX);
+  if (!match) {
+    return "";
+  }
+
+  return match[1].trim();
+}
+
+export function buildDraftRecipient(inquirerEmail: string, inquirerName: string): string {
+  return inquirerName ? `"${inquirerName}" <${inquirerEmail}>` : inquirerEmail;
+}
+
+export function threadHasExistingDraft(recipient: string, drafts: InquiryDraft[]): boolean {
+  return drafts.some((draft) => draft.getMessage().getTo() === recipient);
 }
 
 export function findUnprocessedInquiryThreads(
@@ -103,16 +110,12 @@ export function getOrCreateLabel(name: string): InquiryLabel {
 }
 
 export function createDraftForThread(
-  thread: InquiryThread,
-  inquirerEmail: string,
+  recipient: string,
+  inquirerName: string,
   viewingMessage: string,
   config: InquiryDraftConfig,
 ): void {
-  const messages = thread.getMessages();
-  const latestMessage = messages[messages.length - 1];
-  const senderName = extractSenderName(latestMessage.getFrom());
-
-  GmailApp.createDraft(inquirerEmail, buildDraftSubject(config), buildDraftBody(senderName, viewingMessage, config));
+  GmailApp.createDraft(recipient, buildDraftSubject(config), buildDraftBody(inquirerName, viewingMessage, config));
 }
 
 export function formatError(error: unknown): string {

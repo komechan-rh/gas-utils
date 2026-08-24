@@ -3,12 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildClosing,
   buildDraftBody,
+  buildDraftRecipient,
   buildDraftSubject,
   buildGreeting,
   buildSearchQuery,
   createEmptyResult,
   extractInquirerEmail,
-  extractSenderName,
+  extractInquirerName,
   threadHasExistingDraft,
 } from "./inquiry-draft";
 import { doPost, main, setScriptProperties, setupTrigger } from "./index";
@@ -113,20 +114,6 @@ describe("buildSearchQuery", () => {
   });
 });
 
-describe("extractSenderName", () => {
-  it("表示名とメールアドレスの形式から表示名を取り出す", () => {
-    expect(extractSenderName("山田太郎 <taro@example.com>")).toBe("山田太郎");
-  });
-
-  it("ダブルクォートで囲まれた表示名からクォートを除いて取り出す", () => {
-    expect(extractSenderName('"山田 太郎" <taro@example.com>')).toBe("山田 太郎");
-  });
-
-  it("表示名がない場合は空文字を返す", () => {
-    expect(extractSenderName("taro@example.com")).toBe("");
-  });
-});
-
 describe("buildGreeting", () => {
   const config = {
     organizationName: "example organization",
@@ -201,14 +188,14 @@ describe("buildDraftBody", () => {
 });
 
 describe("threadHasExistingDraft", () => {
-  it("宛先が問い合わせ者のメールアドレスと一致する下書きがあればtrueを返す", () => {
+  it("宛先が一致する下書きがあればtrueを返す", () => {
     const drafts = [
       {
-        getMessage: () => ({ getTo: () => "taro@example.com" }),
+        getMessage: () => ({ getTo: () => '"山田太郎" <taro@example.com>' }),
       },
     ] as unknown as GoogleAppsScript.Gmail.GmailDraft[];
 
-    expect(threadHasExistingDraft("taro@example.com", drafts)).toBe(true);
+    expect(threadHasExistingDraft('"山田太郎" <taro@example.com>', drafts)).toBe(true);
   });
 
   it("宛先が一致する下書きがなければfalseを返す", () => {
@@ -251,5 +238,32 @@ describe("extractInquirerEmail", () => {
 
   it("メールアドレスが見つからない場合はエラーを投げる", () => {
     expect(() => extractInquirerEmail("メールアドレスの記載がありません。")).toThrow();
+  });
+});
+
+describe("extractInquirerName", () => {
+  it("ラベル付きの行から氏名を取り出す", () => {
+    const body = "お名前: 山田太郎\nメールアドレス: taro@example.com";
+
+    expect(extractInquirerName(body)).toBe("山田太郎");
+  });
+
+  it("氏名・name などのラベル表記にも対応する", () => {
+    expect(extractInquirerName("氏名：山田太郎")).toBe("山田太郎");
+    expect(extractInquirerName("Name: Taro Yamada")).toBe("Taro Yamada");
+  });
+
+  it("ラベルが見つからない場合は空文字を返す", () => {
+    expect(extractInquirerName("お名前の記載がありません。")).toBe("");
+  });
+});
+
+describe("buildDraftRecipient", () => {
+  it("氏名がある場合は表示名付きの宛先を組み立てる", () => {
+    expect(buildDraftRecipient("taro@example.com", "山田太郎")).toBe('"山田太郎" <taro@example.com>');
+  });
+
+  it("氏名がない場合はメールアドレスのみを返す", () => {
+    expect(buildDraftRecipient("taro@example.com", "")).toBe("taro@example.com");
   });
 });

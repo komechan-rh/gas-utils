@@ -1,9 +1,11 @@
 import { respondJson, syncScriptProperties } from "shared/script-properties-sync";
 import { type GenAiConfig, generateInquiryReplyMessage } from "./genai-client";
 import {
+  buildDraftRecipient,
   createDraftForThread,
   createEmptyResult,
   extractInquirerEmail,
+  extractInquirerName,
   findUnprocessedInquiryThreads,
   formatError,
   getOrCreateLabel,
@@ -74,8 +76,10 @@ function main(): void {
         const messages = thread.getMessages();
         const inquiryBody = messages[messages.length - 1].getPlainBody();
         const inquirerEmail = extractInquirerEmail(inquiryBody);
+        const inquirerName = extractInquirerName(inquiryBody);
+        const recipient = buildDraftRecipient(inquirerEmail, inquirerName);
 
-        if (threadHasExistingDraft(inquirerEmail, drafts)) {
+        if (threadHasExistingDraft(recipient, drafts)) {
           result.skipped += 1;
           processedLabel.addToThread(thread);
           console.log(`既に下書きが存在するためスキップしました。件名「${thread.getFirstMessageSubject()}」`);
@@ -84,7 +88,7 @@ function main(): void {
 
         const viewingMessage = generateInquiryReplyMessage(inquiryBody, config.genai);
 
-        createDraftForThread(thread, inquirerEmail, viewingMessage, config);
+        createDraftForThread(recipient, inquirerName, viewingMessage, config);
         processedLabel.addToThread(thread);
         result.drafted += 1;
         console.log(`返信の下書きを作成しました。件名「${thread.getFirstMessageSubject()}」`);
