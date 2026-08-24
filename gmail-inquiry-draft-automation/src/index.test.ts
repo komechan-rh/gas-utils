@@ -230,6 +230,12 @@ describe("extractInquirerEmail", () => {
     expect(extractInquirerEmail(body)).toBe("taro@example.com");
   });
 
+  it("角括弧ラベル＋同一行の値の形式に対応する", () => {
+    const body = "* [メールアドレス] taro@example.com";
+
+    expect(extractInquirerEmail(body)).toBe("taro@example.com");
+  });
+
   it("ラベルがない場合は本文中の最初のメールアドレスを取り出す", () => {
     const body = "お問い合わせありがとうございます。taro@example.com までご連絡ください。";
 
@@ -251,6 +257,14 @@ describe("extractInquirerName", () => {
   it("氏名・name などのラベル表記にも対応する", () => {
     expect(extractInquirerName("氏名：山田太郎")).toBe("山田太郎");
     expect(extractInquirerName("Name: Taro Yamada")).toBe("Taro Yamada");
+  });
+
+  it("角括弧ラベル＋同一行の値の形式に対応する", () => {
+    expect(extractInquirerName("* [お名前] Mariano  Vazquez")).toBe("Mariano  Vazquez");
+  });
+
+  it("記号付きラベル＋改行後の値の形式に対応する", () => {
+    expect(extractInquirerName("■お名前：\n長野寿子")).toBe("長野寿子");
   });
 
   it("ラベルが見つからない場合は空文字を返す", () => {

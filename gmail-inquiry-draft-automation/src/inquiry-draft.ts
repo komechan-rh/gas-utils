@@ -62,7 +62,11 @@ export function buildDraftSubject(config: Pick<InquiryDraftConfig, "organization
 }
 
 const EMAIL_PATTERN = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}";
-const LABELED_EMAIL_REGEX = new RegExp(`(?:メール(?:アドレス)?|e-?mail)\\s*[:：]\\s*(${EMAIL_PATTERN})`, "i");
+const EMAIL_LABEL_PATTERN = "メール(?:アドレス)?|e-?mail";
+const LABELED_EMAIL_REGEX = new RegExp(
+  `(?:\\[(?:${EMAIL_LABEL_PATTERN})\\]|(?:${EMAIL_LABEL_PATTERN})\\s*[:：])\\s*(${EMAIL_PATTERN})`,
+  "i",
+);
 const EMAIL_REGEX = new RegExp(EMAIL_PATTERN);
 
 export function extractInquirerEmail(inquiryBody: string): string {
@@ -79,7 +83,11 @@ export function extractInquirerEmail(inquiryBody: string): string {
   return fallbackMatch[0];
 }
 
-const LABELED_NAME_REGEX = /(?:お名前|氏名|名前|name)\s*[:：]\s*(.+)/i;
+const NAME_LABEL_PATTERN = "お名前|氏名|名前|name";
+const LABELED_NAME_REGEX = new RegExp(
+  `(?:\\[(?:${NAME_LABEL_PATTERN})\\]|(?:${NAME_LABEL_PATTERN})\\s*[:：])\\s*(.+)`,
+  "i",
+);
 
 export function extractInquirerName(inquiryBody: string): string {
   const match = inquiryBody.match(LABELED_NAME_REGEX);
