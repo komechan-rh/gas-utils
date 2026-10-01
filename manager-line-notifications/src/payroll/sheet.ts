@@ -102,9 +102,8 @@ function buildMonthlyPayrollResult(
 }
 
 function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult | undefined {
-  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
-    "PAYROLL_SPREADSHEET_ID",
-  );
+  const spreadsheetId =
+    PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
@@ -118,7 +117,21 @@ function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult 
 type PaymentStatusCell = {
   row: number;
   col: number;
+  workMonth: string;
 };
+
+function toPaymentStatusCell(
+  dataStartIndex: number,
+  rowIndex: number,
+  row: unknown[],
+  columnMap: ColumnMap,
+): PaymentStatusCell {
+  return {
+    row: dataStartIndex + rowIndex + 1,
+    col: columnMap.paymentStatusCol + 1,
+    workMonth: formatWorkMonth(row[columnMap.workMonthCol]),
+  };
+}
 
 // シート上の「支払い状況」セルの位置（1始まりの行・列番号）を求める。
 // buildMonthlyPayrollResultは値の抽出のみだが、書き込みにはシート全体における絶対位置が要る。
@@ -130,41 +143,53 @@ function findPaymentStatusCell(
   const columnMap = buildColumnMap(nameRow, labelRow);
   const dataRows = values.slice(dataStartIndex);
 
-  const targetRowIndex = dataRows.findIndex((row) => matchesTargetMonth(row, columnMap, targetDate));
+  const targetRowIndex = dataRows.findIndex((row) =>
+    matchesTargetMonth(row, columnMap, targetDate),
+  );
   if (targetRowIndex < 0) return undefined;
 
-  return {
-    row: dataStartIndex + targetRowIndex + 1,
-    col: columnMap.paymentStatusCol + 1,
-  };
+  return toPaymentStatusCell(dataStartIndex, targetRowIndex, dataRows[targetRowIndex], columnMap);
 }
 
-function isCellMarkedPaid(values: unknown[][], cell: PaymentStatusCell): boolean {
-  return values[cell.row - 1][cell.col - 1] === PAID_STATUS;
+// 支払い予定日が当月より前で、支払い状況が「済」以外のまま残っている行のうち最も古いもの。
+// 支払い状況が空欄の行は、管理対象外（記録開始前など）とみなして除外する。
+function findOldestOverdueUnpaidCell(
+  values: unknown[][],
+  targetDate: Date,
+): PaymentStatusCell | undefined {
+  const { nameRow, labelRow, dataStartIndex } = findHeaderRows(values);
+  const columnMap = buildColumnMap(nameRow, labelRow);
+  const dataRows = values.slice(dataStartIndex);
+  const currentMonthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+
+  let oldest: { rowIndex: number; dueDate: Date } | undefined;
+  dataRows.forEach((row, rowIndex) => {
+    const dueDate = row[columnMap.paymentDueDateCol];
+    const status = row[columnMap.paymentStatusCol];
+    if (!(dueDate instanceof Date) || dueDate >= currentMonthStart) return;
+    if (status === "" || status == null || status === PAID_STATUS) return;
+    if (!oldest || dueDate < oldest.dueDate) oldest = { rowIndex, dueDate };
+  });
+  if (!oldest) return undefined;
+
+  return toPaymentStatusCell(dataStartIndex, oldest.rowIndex, dataRows[oldest.rowIndex], columnMap);
 }
 
-// 「給与支払い済」発言時点では対象月が未払いリマインドの対象月（支払いが遅れて
-// ずれ込んだ場合）か当月分かが分からないため、未払いのまま残っているリマインド対象月を
-// 優先して更新対象にする。
+// 「給与支払い済」発言時点では、支払いが遅れてずれ込んだ過去月分か当月分かが分からないため、
+// 未払いのまま残っている過去月分を古い順に優先して更新対象にし、なければ当月分を更新する。
 function resolveMarkTargetCell(
   values: unknown[][],
   targetDate: Date,
 ): PaymentStatusCell | undefined {
-  const reminderTargetCell = findPaymentStatusCell(
-    values,
-    getMonthsAgoDate(UNPAID_REMINDER_MONTHS_AGO, targetDate),
+  return (
+    findOldestOverdueUnpaidCell(values, targetDate) ?? findPaymentStatusCell(values, targetDate)
   );
-  if (reminderTargetCell && !isCellMarkedPaid(values, reminderTargetCell)) {
-    return reminderTargetCell;
-  }
-
-  return findPaymentStatusCell(values, targetDate);
 }
 
-function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
-  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
-    "PAYROLL_SPREADSHEET_ID",
-  );
+// 更新した行の稼働月（例: "2026/08"）を返す。対象行が見つからなければ undefined。
+function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): string | undefined {
+  const spreadsheetId =
+    PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
@@ -173,19 +198,19 @@ function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
   const values = sheet.getDataRange().getValues();
 
   const cell = resolveMarkTargetCell(values, targetDate);
-  if (!cell) return false;
+  if (!cell) return undefined;
 
   sheet.getRange(cell.row, cell.col).setValue(PAID_STATUS);
-  return true;
+  return cell.workMonth;
 }
 
 export {
-  getMonthlyPayroll,
   buildMonthlyPayrollResult,
   findPaymentStatusCell,
-  markMonthlyPayrollAsPaid,
-  resolveMarkTargetCell,
+  getMonthlyPayroll,
   getMonthsAgoDate,
-  UNPAID_REMINDER_MONTHS_AGO,
+  markMonthlyPayrollAsPaid,
   PAID_STATUS,
+  resolveMarkTargetCell,
+  UNPAID_REMINDER_MONTHS_AGO,
 };

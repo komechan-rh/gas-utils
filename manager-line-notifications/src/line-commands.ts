@@ -34,9 +34,9 @@ function replyMonthlyPayroll({ replyToken }: LineCommandContext): void {
 }
 
 function replyMarkPayrollAsPaid({ replyToken }: LineCommandContext): void {
-  const updated = markMonthlyPayrollAsPaid();
-  const message = updated
-    ? "給与の支払い状況を「済」に更新しました。"
+  const updatedWorkMonth = markMonthlyPayrollAsPaid();
+  const message = updatedWorkMonth
+    ? `給与の支払い状況（${updatedWorkMonth}稼働分）を「済」に更新しました。`
     : "今月の支払い予定が見つからず、更新できませんでした。";
 
   replyTextMessage(replyToken, message);

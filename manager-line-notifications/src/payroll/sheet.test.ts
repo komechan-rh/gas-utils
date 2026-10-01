@@ -127,7 +127,7 @@ describe("findPaymentStatusCell", () => {
 
     const cell = findPaymentStatusCell(values, new Date(2026, 6, 9));
 
-    expect(cell).toEqual({ row: 3, col: 20 });
+    expect(cell).toMatchObject({ row: 3, col: 20 });
   });
 
   it("対象月に一致する支払い予定日がなければundefinedを返す", () => {
@@ -151,43 +151,53 @@ describe("getMonthsAgoDate", () => {
 });
 
 describe("resolveMarkTargetCell", () => {
-  // 支払いが遅れて翌月にずれ込んだケース: 未払いリマインド対象の前月分（7月30日支払い予定）が
-  // 未済のまま残っている状態で8月に「給与支払い済」と発言した場合、当月分ではなく
-  // 未済のリマインド対象月を更新対象にする。
-  function buildTwoMonthSheetValues(reminderTargetStatus: string): unknown[][] {
+  // 10月1日時点で、8月支払い分（7月稼働）・9月支払い分（8月稼働）が未済のまま残っているケース。
+  function buildSheetValuesWithStatuses(statuses: {
+    jul: string;
+    aug: string;
+    sep: string;
+    oct: string;
+  }): unknown[][] {
     const nameRow = ["", "", "", "スタッフA", "支払い状況"];
     const labelRow = ["稼働月", "稼働月末日", "支払い予定日", "合計", ""];
-    const reminderTargetRow = [
-      "2026/06",
-      new Date(2026, 5, 30),
-      new Date(2026, 6, 30),
-      40000,
-      reminderTargetStatus,
+    return [
+      nameRow,
+      labelRow,
+      ["2026/06", new Date(2026, 5, 30), new Date(2026, 6, 30), 40000, statuses.jul],
+      ["2026/07", new Date(2026, 6, 31), new Date(2026, 7, 31), 40000, statuses.aug],
+      ["2026/08", new Date(2026, 7, 31), new Date(2026, 8, 30), 40000, statuses.sep],
+      ["2026/09", new Date(2026, 8, 30), new Date(2026, 9, 31), 40000, statuses.oct],
     ];
-    const currentMonthRow = [
-      "2026/07",
-      new Date(2026, 6, 31),
-      new Date(2026, 7, 30),
-      40000,
-      "未済",
-    ];
-
-    return [nameRow, labelRow, reminderTargetRow, currentMonthRow];
   }
 
-  it("リマインド対象月（前月分）が未済であれば、当月分ではなくそちらのセル位置を返す", () => {
-    const values = buildTwoMonthSheetValues("未済");
+  const today = new Date(2026, 9, 1);
 
-    const cell = resolveMarkTargetCell(values, new Date(2026, 7, 5));
+  it("未済の過去月分のうち最も古いもののセル位置を返す", () => {
+    const values = buildSheetValuesWithStatuses({
+      jul: "済",
+      aug: "未済",
+      sep: "未済",
+      oct: "未済",
+    });
 
-    expect(cell).toEqual({ row: 3, col: 5 });
+    expect(resolveMarkTargetCell(values, today)).toEqual({ row: 4, col: 5, workMonth: "2026/07" });
   });
 
-  it("リマインド対象月（前月分）が済であれば、当月分のセル位置を返す", () => {
-    const values = buildTwoMonthSheetValues("済");
+  it("古い過去月分が済になった後は、次に古い未済の過去月分を返す（当月分には進まない）", () => {
+    const values = buildSheetValuesWithStatuses({ jul: "済", aug: "済", sep: "未済", oct: "未済" });
 
-    const cell = resolveMarkTargetCell(values, new Date(2026, 7, 5));
+    expect(resolveMarkTargetCell(values, today)).toEqual({ row: 5, col: 5, workMonth: "2026/08" });
+  });
 
-    expect(cell).toEqual({ row: 4, col: 5 });
+  it("過去月分がすべて済であれば、当月分のセル位置を返す", () => {
+    const values = buildSheetValuesWithStatuses({ jul: "済", aug: "済", sep: "済", oct: "未済" });
+
+    expect(resolveMarkTargetCell(values, today)).toEqual({ row: 6, col: 5, workMonth: "2026/09" });
+  });
+
+  it("支払い状況が空欄の過去月分は対象外とする", () => {
+    const values = buildSheetValuesWithStatuses({ jul: "", aug: "済", sep: "未済", oct: "未済" });
+
+    expect(resolveMarkTargetCell(values, today)).toEqual({ row: 5, col: 5, workMonth: "2026/08" });
   });
 });
