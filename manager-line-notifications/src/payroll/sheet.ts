@@ -5,8 +5,9 @@ const NON_PERSON_LABELS = ["空き部屋数", "支払い状況"];
 
 const PAID_STATUS = "済";
 
-// 未払いリマインドの対象月（支払い予定日ベース）。2ヶ月前 = 支払い予定日が2ヶ月前の月であるもの。
-const UNPAID_REMINDER_MONTHS_AGO = 2;
+// 未払いリマインドの対象月（支払い予定日ベース）。1ヶ月前 = 支払い予定日が前月であるもの。
+// 例: 10月の実行では、9月支払い分（8月稼働分）が対象になる。
+const UNPAID_REMINDER_MONTHS_AGO = 1;
 
 function getMonthsAgoDate(monthsAgo: number, baseDate: Date = new Date()): Date {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() - monthsAgo, 1);
