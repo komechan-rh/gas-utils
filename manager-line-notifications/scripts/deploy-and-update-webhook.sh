@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# clasp でデプロイし、発行された Web アプリ URL を LINE Developers の
-# Webhook URL に自動反映する。
-#
-# 前提:
-#   - clasp CLI にログイン済みであること
-#   - CLASP_USER を環境変数で設定していること
-#   - LINE_CHANNEL_ACCESS_TOKEN は Infisical の /manager-line-notifications から
-#     `infisical run` 経由で注入されること（package.json の deploy:webhook 参照）
+# 既存GASを更新し、署名検証用中継URLをLINEへ登録する。
+# 中継の初回デプロイとシークレット設定はREADMEを参照。
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,46 +8,31 @@ cd "$PROJECT_DIR"
 
 : "${LINE_CHANNEL_ACCESS_TOKEN:?LINE_CHANNEL_ACCESS_TOKEN is not set}"
 : "${CLASP_USER:?CLASP_USER is not set}"
+: "${DEPLOYMENT_ID:?DEPLOYMENT_ID is not set}"
+: "${LINE_WEBHOOK_RELAY_URL:?LINE_WEBHOOK_RELAY_URL is not set (use the Worker URL, not the GAS URL)}"
 
-echo "==> バージョンを上げる"
-pnpm run version:bump
+# GAS直送の旧構成を誤って再登録しない。
+node -e '
+  const url = new URL(process.env.LINE_WEBHOOK_RELAY_URL);
+  if (url.protocol !== "https:" || /(^|\.)(google\.com|googleusercontent\.com)$/.test(url.hostname)) {
+    throw new Error("LINE_WEBHOOK_RELAY_URL must be an HTTPS relay URL, not a GAS URL");
+  }
+'
 
-echo "==> ビルド"
-pnpm run build
+pnpm run redeploy
 
-echo "==> Apps Script へ push"
-clasp push -u "$CLASP_USER" --force
-
-echo "==> デプロイ"
-DEPLOY_JSON="$(clasp deploy -u "$CLASP_USER" --json)"
-echo "$DEPLOY_JSON"
-
-DEPLOYMENT_ID="$(node -e '
-  const json = JSON.parse(process.argv[1]);
-  if (!json.deploymentId) process.exit(1);
-  console.log(json.deploymentId);
-' "$DEPLOY_JSON")"
-
-WEBHOOK_URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/exec"
-echo "==> Webhook URL: ${WEBHOOK_URL}"
-
-echo "==> LINE Developers の Webhook URL を更新"
-UPDATE_RESPONSE="$(curl -sS -o /dev/stderr -w '%{http_code}' -X PUT \
-  "https://api.line.me/v2/bot/channel/webhook/endpoint" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
-  -d "{\"endpoint\": \"${WEBHOOK_URL}\"}")"
-
-if [ "$UPDATE_RESPONSE" != "200" ]; then
-  echo "LINE Webhook URL の更新に失敗しました (HTTP ${UPDATE_RESPONSE})" >&2
-  exit 1
-fi
-
-echo "==> Webhook 疎通確認"
-curl -sS -X POST "https://api.line.me/v2/bot/channel/webhook/test" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
-  -d "{\"endpoint\": \"${WEBHOOK_URL}\"}"
-echo
-
-echo "==> 完了: Webhook URL を ${WEBHOOK_URL} に更新しました"
+node --input-type=module <<'JS'
+const headers = {
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+};
+const body = JSON.stringify({ endpoint: process.env.LINE_WEBHOOK_RELAY_URL });
+for (const [path, method] of [["endpoint", "PUT"], ["test", "POST"]]) {
+  const response = await fetch(`https://api.line.me/v2/bot/channel/webhook/${path}`, { method, headers, body });
+  if (!response.ok) throw new Error(`LINE Webhook ${path}: HTTP ${response.status}`);
+  if (path === "test" && !(await response.json()).success) {
+    throw new Error("LINE Webhook疎通確認が失敗しました。中継設定を確認してください。");
+  }
+}
+console.log("既存GASを更新し、署名検証用中継URLをLINEに登録しました。");
+JS

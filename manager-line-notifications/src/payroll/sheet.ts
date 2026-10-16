@@ -170,15 +170,68 @@ function resolveMarkTargetCell(
   return findPaymentStatusCell(values, targetDate);
 }
 
-function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
-  const sheet = getPayrollSheet();
-  const values = sheet.getDataRange().getValues();
+// 対象月を更新前に永続化し、クラッシュ後の再試行も同じ月に固定する。
+// 完了済みイベントは undefined（返信も省略）。記録は削除しない。
+function markMonthlyPayrollAsPaid(
+  webhookEventId: string,
+  targetDate: Date = new Date(),
+): boolean | undefined {
+  if (!/^[\w-]{1,128}$/.test(webhookEventId)) throw new Error("Invalid webhookEventId");
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const key = `PAYROLL_EVENT_${webhookEventId}`;
+    const saved = props.getProperty(key);
+    let record: { spreadsheetId: string; year: number; month: number; done: boolean } | undefined =
+      saved ? JSON.parse(saved) : undefined;
+    if (record?.done) return undefined;
 
-  const cell = resolveMarkTargetCell(values, targetDate);
-  if (!cell) return false;
+    const spreadsheetId = record?.spreadsheetId || props.getProperty("PAYROLL_SPREADSHEET_ID");
+    if (!spreadsheetId) throw new Error("PAYROLL_SPREADSHEET_ID が設定されていません。");
+    const sheet = SpreadsheetApp.openById(spreadsheetId).getSheets()[0];
+    const values = sheet.getDataRange().getValues();
+    const cell = record
+      ? findPaymentStatusCell(values, new Date(record.year, record.month, 1))
+      : resolveMarkTargetCell(values, targetDate);
+    // 保存済み対象が消えた場合も、別月へフォールバックしない。
+    if (!cell) {
+      if (!record) {
+        // 対象なしという結果も記録し、月をまたぐ再配信で再選択しない。
+        props.setProperty(
+          key,
+          JSON.stringify({
+            spreadsheetId,
+            year: targetDate.getFullYear(),
+            month: targetDate.getMonth(),
+            done: true,
+          }),
+        );
+      }
+      return false;
+    }
+    if (cell.col < 1) throw new Error("支払い状況の列が見つかりません。");
 
-  sheet.getRange(cell.row, cell.col).setValue(PAID_STATUS);
-  return true;
+    if (!record) {
+      const { nameRow, labelRow } = findHeaderRows(values);
+      const dueDate = values[cell.row - 1][
+        buildColumnMap(nameRow, labelRow).paymentDueDateCol
+      ] as Date;
+      record = {
+        spreadsheetId,
+        year: dueDate.getFullYear(),
+        month: dueDate.getMonth(),
+        done: false,
+      };
+      props.setProperty(key, JSON.stringify(record));
+    }
+    sheet.getRange(cell.row, cell.col).setValue(PAID_STATUS);
+    SpreadsheetApp.flush();
+    props.setProperty(key, JSON.stringify({ ...record, done: true }));
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 export {

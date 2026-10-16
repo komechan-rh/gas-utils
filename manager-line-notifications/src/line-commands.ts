@@ -8,6 +8,7 @@ import { getMonthlyPayroll, markMonthlyPayrollAsPaid } from "./payroll/sheet";
 type LineCommandContext = {
   replyToken: string;
   groupId?: string;
+  webhookEventId: string;
 };
 
 type LineCommandHandler = (context: LineCommandContext) => void;
@@ -33,8 +34,10 @@ function replyMonthlyPayroll({ replyToken }: LineCommandContext): void {
   replyTextMessage(replyToken, message);
 }
 
-function replyMarkPayrollAsPaid({ replyToken }: LineCommandContext): void {
-  const updated = markMonthlyPayrollAsPaid();
+function replyMarkPayrollAsPaid({ replyToken, webhookEventId }: LineCommandContext): void {
+  const updated = markMonthlyPayrollAsPaid(webhookEventId);
+  // 更新後に返信だけ失敗しても、再配信では更新も返信も繰り返さない。
+  if (updated === undefined) return;
   const message = updated
     ? "給与の支払い状況を「済」に更新しました。"
     : "今月の支払い予定が見つからず、更新できませんでした。";
