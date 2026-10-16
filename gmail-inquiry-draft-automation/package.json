@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "vite build && cp appsscript.json dist/appsscript.json",
-    "watch": "tsc --watch",
+    "watch": "tsc --noEmit --watch",
     "push": "pnpm build && clasp push -u ${CLASP_USER:?CLASP_USER is not set}",
     "deploy": "clasp deploy -u ${CLASP_USER:?CLASP_USER is not set}",
     "open": "clasp open-script -u ${CLASP_USER:?CLASP_USER is not set}",
@@ -14,7 +14,7 @@
     "lint": "biome lint src",
     "format": "biome format --write src",
     "check": "biome check --write src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "shared": "workspace:*"

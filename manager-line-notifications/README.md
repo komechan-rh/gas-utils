@@ -122,7 +122,7 @@ pnpm run sync-props
 ## コマンド
 
 - `pnpm run build` - TypeScript をコンパイルし、`appsscript.json` を `dist/` にコピー
-- `pnpm run watch` - TypeScript の変更を監視してコンパイル
+- `pnpm run watch` - TypeScript の変更を監視して型チェック（ファイルは出力しない。GAS 用のビルドは `pnpm run build`）
 - `pnpm run push` - ビルド後に Apps Script へプッシュ
 - `pnpm run sync-props` - Infisical のシークレットをスクリプトプロパティへ同期（前掲の「Infisical によるスクリプトプロパティの自動同期」参照）
 - `pnpm run deploy` - clasp で新規デプロイを作成する（**本番Webhookが有効な間は使用禁止**。既存デプロイの更新には `redeploy` を使うこと）

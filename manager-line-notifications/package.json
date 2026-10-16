@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "vite build && cp appsscript.json dist/appsscript.json",
-    "watch": "tsc --watch",
+    "watch": "tsc --noEmit --watch",
     "version:bump": "pnpm version patch --no-git-tag-version",
     "push": "pnpm run version:bump && pnpm build && clasp push -u ${CLASP_USER:?CLASP_USER is not set} --force",
     "deploy": "pnpm run version:bump && clasp deploy -u ${CLASP_USER:?CLASP_USER is not set}",

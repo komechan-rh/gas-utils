@@ -54,7 +54,7 @@ describe("doPost", () => {
 
     doPost({ postData: { contents: "not-json" } } as GoogleAppsScript.Events.DoPost);
 
-    const [responseJson] = output.setContent.mock.calls.at(0) ?? [];
+    const [responseJson] = output.setContent.mock.calls[0] ?? [];
     expect(JSON.parse(responseJson as string)).toMatchObject({ ok: false });
   });
 });

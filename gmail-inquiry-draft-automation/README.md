@@ -89,7 +89,7 @@ pnpm run sync-props
 ## コマンド
 
 - `pnpm run build` - TypeScript をコンパイルし、`appsscript.json` を `dist/` にコピー
-- `pnpm run watch` - TypeScript の変更を監視してコンパイル
+- `pnpm run watch` - TypeScript の変更を監視して型チェック（ファイルは出力しない。GAS 用のビルドは `pnpm run build`）
 - `pnpm run push` - ビルド後に Apps Script へプッシュ
 - `pnpm run sync-props` - Infisical のシークレットをスクリプトプロパティへ同期（前掲の「Infisical によるスクリプトプロパティの自動同期」参照）
 - `pnpm run deploy` - clasp でデプロイ
