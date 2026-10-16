@@ -36,21 +36,15 @@ export function main(): void {
   const result = createEmptyResult();
 
   try {
-    const GUEST_EMAILS = getGuestEmails();
+    const guestEmails = getGuestEmails();
 
-    if (GUEST_EMAILS.length === 0) {
+    if (guestEmails.length === 0) {
       throw new Error("GUEST_EMAILS must contain at least one email.");
-    }
-    if (GUEST_EMAILS.some((email) => email.trim() === "")) {
-      throw new Error("GUEST_EMAILS must not contain empty values.");
-    }
-    if (EVENT_CREATED_LOOKBACK_MINUTES <= 0) {
-      throw new Error("EVENT_CREATED_LOOKBACK_MINUTES must be greater than 0.");
     }
 
     const createdAfter = createCreatedAfterThreshold(EVENT_CREATED_LOOKBACK_MINUTES);
     console.log(
-      `カレンダー自動招待を開始します。対象カレンダー: ${CALENDAR_ID}、作成日時の確認範囲: ${createdAfter} 以降、追加対象ゲスト: ${GUEST_EMAILS.join(", ")}`,
+      `カレンダー自動招待を開始します。対象カレンダー: ${CALENDAR_ID}、作成日時の確認範囲: ${createdAfter} 以降、追加対象ゲスト: ${guestEmails.join(", ")}`,
     );
     const changedEvents = listRecentlyChangedEvents(CALENDAR_ID, createdAfter);
 
@@ -74,13 +68,13 @@ export function main(): void {
           return;
         }
 
-        if (hasAllConfiguredGuests(event, GUEST_EMAILS)) {
+        if (hasAllConfiguredGuests(event, guestEmails)) {
           result.alreadyComplete += 1;
           logAdvancedEvent("NOOP", event, "設定済みゲストは既に全員追加されています。");
           return;
         }
 
-        const addResult = addGuestsToCalendarEvent(CALENDAR_ID, event, GUEST_EMAILS);
+        const addResult = addGuestsToCalendarEvent(CALENDAR_ID, event, guestEmails);
         result.updated += addResult.addedEmails.length > 0 ? 1 : 0;
         result.addedGuests += addResult.addedEmails.length;
         result.failedGuests += addResult.failedEmails.length;

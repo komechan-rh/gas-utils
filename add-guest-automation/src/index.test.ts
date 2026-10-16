@@ -76,6 +76,10 @@ describe("createEmptyResult", () => {
 });
 
 describe("shouldProcessCreatedEvent", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   const defaultOptions = {
     includeAllDayEvents: false,
     skipTitleKeywords: ["招待不要"],
