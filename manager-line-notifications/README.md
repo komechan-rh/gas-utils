@@ -50,25 +50,45 @@ reply 機能を使うため、Webhook は一時的にではなく常時オンに
    - **チャネルアクセストークン（長期）** を発行する → `LINE_CHANNEL_ACCESS_TOKEN` に使用
    - 「応答メッセージ」（LINE公式アカウントのデフォルト応答機能）をオフにする（`doPost` 側の応答と重複させないため）
    - 「Webhookの利用」をオンにする
-4. 初回は `pnpm run deploy:webhook` を実行すると、ビルド・push・新規デプロイ・Messaging API 設定への Webhook URL 登録までを自動化できます（詳細は下記「デプロイ後の Webhook URL 自動更新」）。手動で行う場合は、`pnpm run push` で反映後、Apps Script エディタで「デプロイ」→「新しいデプロイ」→ 種類「ウェブアプリ」、実行ユーザー「自分」、アクセス「全員」でデプロイし、発行された URL を Messaging API 設定の Webhook URL に登録します。
+4. 下記「署名検証用中継のセットアップ」に従い、中継をデプロイしてそのURLをLINEのWebhook URLに登録します。GASのURLへ直接送信する旧構成ではコマンドを実行しません。
 
-   **Webhook URL を登録済みの状態でコードを更新した場合は、二度と `pnpm run deploy` / `pnpm run deploy:webhook` を使わないでください。** どちらも新規デプロイ（＝新しいURL）を作成するため、LINE側に登録済みのWebhook URLが無効になります。既存デプロイの更新には、必ず `DEPLOYMENT_ID=<デプロイID> CLASP_USER=<alias> pnpm run redeploy` を使い、同じデプロイ・同じURLのままコードだけを更新してください。デプロイIDは `clasp deployments -u <alias>` で確認できます。更新後は LINE グループで実際にメッセージ（例:「今週の予定」）を送り、Bot が応答することを必ず確認してください。
 5. 作成した Bot を、通知を送りたい LINE グループに招待します（QRコードまたは Bot の LINE ID で友だち追加してからグループに招待）。
 6. グループ内で「ID」と発言し、返信された `group_id` を `LINE_GROUP_ID` に使います。
 7. 取得したチャネルアクセストークンとグループIDを、GAS のスクリプトプロパティに設定します。
 
-### デプロイ後の Webhook URL 自動更新
+### 署名検証用中継のセットアップ（既存環境も移行が必要）
 
-`clasp deploy` は実行のたびに新しい deploymentId（＝ Web アプリ URL）を発行するため、新規デプロイのたびに LINE Developers 側の Webhook URL を手動で登録し直す必要があります。`scripts/deploy-and-update-webhook.sh` はビルド・push・deploy を実行し、発行された URL を LINE Messaging API（`PUT /v2/bot/channel/webhook/endpoint`）で自動的に反映します。**既存デプロイのコード更新（URLを変えたくない場合）には使わず、`pnpm run redeploy` を使ってください。**
+GAS の `doPost` は `x-line-signature` ヘッダーを取得できません。このため `webhook-relay/worker.mjs`（Cloudflare Workers）でLINE署名を検証し、未加工の本文と署名を `{ lineWebhook: { body, signature } }` としてGASへ渡します。GAS側でもチャネルシークレットで署名を再検証します。中継を通さない偽のPOSTや、本文の改ざんではコマンドを実行できません。
 
-1. `CLASP_USER` を環境変数として設定します（`pnpm run push` / `pnpm run deploy` と同様）。
-2. `pnpm run deploy:webhook` を実行します（`LINE_CHANNEL_ACCESS_TOKEN` は Infisical から `infisical run` 経由で自動的に注入されます。前掲「スクリプトプロパティ」「Infisical によるスクリプトプロパティの自動同期」参照）。
+1. LINE Developersの「チャネル基本設定」からチャネルシークレットを取得し、GASの Script Properties と Infisical に `LINE_CHANNEL_SECRET` を追加します（アクセストークンとは別の値）。
+2. 新規GASはウェブアプリを「自分として実行・全員」でデプロイします。既存GASは `DEPLOYMENT_ID=<既存ID> CLASP_USER=<alias> pnpm run redeploy` で同じURLのまま更新します。設定同期用の `MANAGER_LINE_WEBAPP_URL` もGASのURLを保持します。
+3. Cloudflareアカウントで認証した Wrangler CLI から、以下を実行します。秘密値はコマンド引数やファイルへ記載せず、入力プロンプトに入力してください。
 
-内部では以下を行います。
+```bash
+cd webhook-relay
+pnpm dlx wrangler deploy
+pnpm dlx wrangler secret put LINE_CHANNEL_SECRET
+pnpm dlx wrangler secret put GAS_WEBAPP_URL
+```
 
-- `pnpm run build` → `clasp push` → `clasp deploy --json` を実行し、レスポンスから `deploymentId` を取得
-- `https://script.google.com/macros/s/<deploymentId>/exec` を Webhook URL として LINE の Webhook エンドポイント設定 API に登録
-- LINE の Webhook 疎通確認 API（`/v2/bot/channel/webhook/test`）で反映結果を表示
+`LINE_CHANNEL_SECRET` はGASと同じチャネルシークレット、`GAS_WEBAPP_URL` は既存GASの `/exec` URLです。シークレット設定完了までは中継は503を返します。
+
+4. LINE Developers の Webhook URL を発行された **Worker のURL** に変更し、疎通確認を実行します。LINEの空イベント検証は200を返します。GASの認証失敗・例外は中継が502として返します。
+5. 設定済みグループで「今週の予定」「今月の給与」を確認します。個別トークや別グループでは業務コマンドが実行されないことを確認します。「ID」のみ、初期設定のため署名済みのグループから利用できます。
+
+設定順の切り替え中は応答が一時停止するため、GASと中継の準備後にLINE側のURLを切り替えてください。運用中のGASコード更新は既存デプロイへの `redeploy` を使います。中継のコード変更時のみ `wrangler deploy` を実行します。GASデプロイを作り直した場合は中継の `GAS_WEBAPP_URL` も更新してください。
+
+`deploy:webhook` は `DEPLOYMENT_ID` で指定した既存GASを更新し、`LINE_WEBHOOK_RELAY_URL` をLINEのWebhook URLへ登録します。初回の中継作成・シークレット設定は上記で行ってください。Infisicalに `LINE_WEBHOOK_RELAY_URL`（WorkerのURL）を登録後、次のように実行できます。
+
+```bash
+DEPLOYMENT_ID=<既存ID> CLASP_USER=<alias> pnpm run deploy:webhook
+```
+
+### 給与更新の再配信対策
+
+「給与支払い済」は `webhookEventId` ごとに対象のスプレッドシートと支払い月を Script Properties の `PAYROLL_EVENT_<ID>` に永続保存します。Script Lockで同時実行を直列化し、対象月の保存後にシート更新・flush・完了記録を行います。シート更新後に処理が中断されても、再配信では保存済みの同じ月だけを更新します。完了済みなら更新と返信を省略します。返信だけ失敗した場合はシートで結果を確認してください。
+
+記録を削除すると古いイベントの重複防止が失われるため、自動削除しません。Script Propertiesの容量上限に達した場合は、新規記録の保存で失敗し、シートは更新しません。長期運用で記録が増えた場合は、永続ストレージへの移行を検討してください。
 
 ## 給与支払いスプレッドシートの設定
 
@@ -95,13 +115,14 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 | キー | 必須 | 値 |
 |------|------|----|
 | `LINE_GROUP_ID` | 必須 | 送信先 LINE グループのID |
+| `LINE_CHANNEL_SECRET` | 必須 | LINEチャネルのシークレット（署名検証用。アクセストークンとは別） |
 | `LINE_CHANNEL_ACCESS_TOKEN` | 必須 | LINE Developers で発行したチャネルアクセストークン（長期） |
 | `PAYROLL_SPREADSHEET_ID` | 必須 | 給与支払い管理スプレッドシートのID（スプレッドシートURLの `/d/` と `/edit` の間の文字列） |
 | `SYNC_SECRET` | 下記「Infisicalによる自動同期」を使う場合のみ必須 | `sync-props` からの同期リクエストを認証する共有シークレット。ランダムな文字列を生成し、Apps Script エディタで手動設定したうえで、同じ値を Infisical にも登録する |
 
 ### `doPost` について
 
-このプロジェクトの Web アプリは、LINE Webhook とスクリプトプロパティ同期の両方を1つの `doPost` で受け付けます。リクエストボディを一度パースし、トップレベルに `events` 配列を持つものは LINE Webhook（`src/line-webhook.ts`）、`secret`/`properties` を持つものはスクリプトプロパティ同期（`shared` の `syncScriptProperties`）へルーティングします。GAS の制約上 `doPost` は1プロジェクトに1つしか持てないため、この2つを共存させています。
+このプロジェクトの Web アプリは署名付き中継リクエスト（`lineWebhook`）と、共有シークレットで認証する設定同期リクエスト（`secret` / `properties`）を受け付けます。署名のない `events` 直送では業務コマンドを実行しません。Webhook本文・返信トークンはログへ出力しません。
 
 ### Infisical によるスクリプトプロパティの自動同期（任意）
 
@@ -111,7 +132,7 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 
 - Apps Script エディタの「プロジェクトの設定」→「スクリプト プロパティ」で `SYNC_SECRET` にランダムな文字列を手動設定済みであること（初回のみ、Web アプリ経由では設定できない）
 - [Infisical CLI](https://infisical.com/docs/cli/overview) をインストール済みで、`infisical login` / `infisical init` をこのディレクトリで実行済みであること
-- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`PAYROLL_SPREADSHEET_ID`・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（LINE Webhookとして既に登録済みのURL）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
+- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
 
 実行方法:
 
@@ -127,7 +148,7 @@ pnpm run sync-props
 - `pnpm run sync-props` - Infisical のシークレットをスクリプトプロパティへ同期（前掲の「Infisical によるスクリプトプロパティの自動同期」参照）
 - `pnpm run deploy` - clasp で新規デプロイを作成する（**本番Webhookが有効な間は使用禁止**。既存デプロイの更新には `redeploy` を使うこと）
 - `pnpm run redeploy` - `DEPLOYMENT_ID` 環境変数で指定した既存デプロイをコードごと更新する（URLは変わらない）
-- `pnpm run deploy:webhook` - 新規デプロイを実行し、発行された URL を LINE Developers の Webhook URL に自動反映する（前掲「デプロイ後の Webhook URL 自動更新」参照。既存デプロイの更新には使わないこと）
+- `pnpm run deploy:webhook` - 既存GASを更新し、設定済み中継URLをLINEに登録する（前掲「署名検証用中継のセットアップ」参照）
 - `pnpm run open` - Apps Script エディタを開く
 - `pnpm run typecheck` - 型チェック
 - `pnpm run lint` - Biome lint

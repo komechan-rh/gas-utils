@@ -53,14 +53,28 @@ describe("doPost", () => {
     return { postData: { contents: JSON.stringify(body) } } as GoogleAppsScript.Events.DoPost;
   }
 
-  it("eventsを持つボディの場合はLINE Webhookに委譲する", () => {
+  it("中継の署名付きボディをLINE Webhookに委譲する", () => {
     stubServices("correct-secret");
-    const e = buildEvent({ events: [{ type: "message" }] });
+    const envelope = { body: '{"events":[]}', signature: "signature" };
+    const e = buildEvent({ lineWebhook: envelope });
 
     const result = doPost(e);
 
-    expect(handleLineWebhook).toHaveBeenCalledWith(e);
+    expect(handleLineWebhook).toHaveBeenCalledWith(envelope);
     expect(result).toBe("line-response");
+  });
+
+  it("旧形式のevents直送ではコマンドを実行しない", () => {
+    const { output } = stubServices("correct-secret");
+    doPost(
+      buildEvent({
+        events: [{ type: "message", message: { type: "text", text: "給与支払い済" } }],
+      }),
+    );
+    expect(handleLineWebhook).not.toHaveBeenCalled();
+    expect(output.setContent).toHaveBeenCalledWith(
+      JSON.stringify({ ok: false, error: "unauthorized" }),
+    );
   });
 
   it("secret/propertiesを持つボディの場合はスクリプトプロパティ同期に委譲する", () => {

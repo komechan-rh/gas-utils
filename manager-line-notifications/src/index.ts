@@ -93,10 +93,10 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
     });
   }
 
-  // LINEのWebhookペイロードは常にトップレベルの events 配列を持つ。
-  // スクリプトプロパティ同期リクエストは secret/properties を持ち、events は持たない。
-  if (Array.isArray((body as { events?: unknown })?.events)) {
-    return handleLineWebhook(e);
+  // GASでは署名ヘッダーを取得できないため、中継が包んだ本文と署名を検証する。
+  // events直送ではコマンドを実行しない。
+  if (body && typeof body === "object" && "lineWebhook" in body) {
+    return handleLineWebhook(body.lineWebhook);
   }
 
   return respondJson(
