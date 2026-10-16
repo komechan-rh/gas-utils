@@ -9,23 +9,18 @@ function getChannelAccessToken_(): string {
   return token;
 }
 
-function pushTextMessage(to: string, text: string): void {
-  const token = getChannelAccessToken_();
-
+function postToLineApi(endpoint: string, payload: Record<string, unknown>): void {
   const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
     method: "post",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${getChannelAccessToken_()}`,
     },
-    payload: JSON.stringify({
-      to,
-      messages: [{ type: "text", text }],
-    }),
+    payload: JSON.stringify(payload),
     muteHttpExceptions: true,
   };
 
-  const response = UrlFetchApp.fetch(LINE_PUSH_ENDPOINT, options);
+  const response = UrlFetchApp.fetch(endpoint, options);
   const statusCode = response.getResponseCode();
 
   if (statusCode !== 200) {
@@ -33,35 +28,15 @@ function pushTextMessage(to: string, text: string): void {
       `LINE API エラー: ステータスコード ${statusCode} - ${response.getContentText()}`,
     );
   }
+}
 
+function pushTextMessage(to: string, text: string): void {
+  postToLineApi(LINE_PUSH_ENDPOINT, { to, messages: [{ type: "text", text }] });
   console.log(`LINE送信完了。送信先: ${to}`);
 }
 
 function replyTextMessage(replyToken: string, text: string): void {
-  const token = getChannelAccessToken_();
-
-  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    payload: JSON.stringify({
-      replyToken,
-      messages: [{ type: "text", text }],
-    }),
-    muteHttpExceptions: true,
-  };
-
-  const response = UrlFetchApp.fetch(LINE_REPLY_ENDPOINT, options);
-  const statusCode = response.getResponseCode();
-
-  if (statusCode !== 200) {
-    throw new Error(
-      `LINE API エラー: ステータスコード ${statusCode} - ${response.getContentText()}`,
-    );
-  }
-
+  postToLineApi(LINE_REPLY_ENDPOINT, { replyToken, messages: [{ type: "text", text }] });
   console.log("LINE返信完了。");
 }
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-
+import { doPost, main, setScriptProperties, setupTrigger } from "./index";
 import {
   buildClosing,
   buildDraftBody,
@@ -9,7 +9,6 @@ import {
   extractSenderName,
   threadHasExistingDraft,
 } from "./inquiry-draft";
-import { doPost, main, setScriptProperties, setupTrigger } from "./index";
 
 describe("GAS entrypoints", () => {
   it("GASから呼び出すmain関数を定義する", () => {
@@ -53,10 +52,11 @@ describe("doPost", () => {
       getScriptProperties: () => ({ getProperty, setProperties }),
     });
 
-    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } = {
-      setMimeType: vi.fn(() => output),
-      setContent: vi.fn(() => output),
-    };
+    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } =
+      {
+        setMimeType: vi.fn(() => output),
+        setContent: vi.fn(() => output),
+      };
     vi.stubGlobal("ContentService", {
       createTextOutput: () => output,
       MimeType: { JSON: "JSON" },
@@ -86,7 +86,7 @@ describe("doPost", () => {
 
     doPost({ postData: { contents: "not-json" } } as GoogleAppsScript.Events.DoPost);
 
-    const [responseJson] = output.setContent.mock.calls.at(0) ?? [];
+    const [responseJson] = output.setContent.mock.calls[0] ?? [];
     expect(JSON.parse(responseJson as string)).toMatchObject({ ok: false });
   });
 });
@@ -148,7 +148,12 @@ describe("buildGreeting", () => {
 });
 
 describe("buildClosing", () => {
-  const config = { organizationName: "example organization", managerName: "", replySignature: "", lineFriendUrl: "" };
+  const config = {
+    organizationName: "example organization",
+    managerName: "",
+    replySignature: "",
+    lineFriendUrl: "",
+  };
 
   it("公式ラインURLが設定されている場合は友達追加の案内を挿入する", () => {
     const closing = buildClosing({ ...config, lineFriendUrl: "https://page.line.me/example" });
@@ -177,7 +182,9 @@ describe("buildClosing", () => {
       replySignature: "example signature",
     });
 
-    expect(closing).toContain("https://page.line.me/example\n\nご確認よろしくお願いいたします。\n\nexample signature");
+    expect(closing).toContain(
+      "https://page.line.me/example\n\nご確認よろしくお願いいたします。\n\nexample signature",
+    );
   });
 });
 

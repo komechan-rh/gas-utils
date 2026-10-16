@@ -20,7 +20,7 @@
 
 ## 共通ツール
 
-- pnpm: パッケージ管理（ルートの pnpm workspace で各GASプロジェクトを束ねている）
+- pnpm: パッケージ管理（ルートの pnpm workspace で各GASプロジェクトを束ねている）。バージョンはルート `package.json` の `packageManager` で固定しており、`corepack enable` で同じバージョンが使われる（CI も同じ値を参照する）
 - clasp: Google Apps Script へのデプロイ
 - Biome: lint / format
 - Vitest: テスト

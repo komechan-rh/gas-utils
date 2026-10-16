@@ -24,14 +24,17 @@ export function parseGenAiResponseText(responseBody: string): string {
   const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text || typeof text !== "string") {
-    throw new Error(`GenAI APIのレスポンスからメッセージを取得できませんでした。詳細: ${responseBody}`);
+    throw new Error(
+      `GenAI APIのレスポンスからメッセージを取得できませんでした。詳細: ${responseBody}`,
+    );
   }
 
   return text.trim();
 }
 
 export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiConfig): string {
-  const url = `${GENAI_API_BASE_URL}/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
+  // APIキーはURLに含めるとログ等に残りやすいため、ヘッダーで渡す。
+  const url = `${GENAI_API_BASE_URL}/${config.model}:generateContent`;
   const payload = {
     contents: [
       {
@@ -43,6 +46,7 @@ export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiCo
   const response = UrlFetchApp.fetch(url, {
     method: "post",
     contentType: "application/json",
+    headers: { "x-goog-api-key": config.apiKey },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
   });
@@ -51,7 +55,9 @@ export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiCo
   const responseBody = response.getContentText();
 
   if (statusCode < 200 || statusCode >= 300) {
-    throw new Error(`GenAI APIの呼び出しに失敗しました。ステータス: ${statusCode}、詳細: ${responseBody}`);
+    throw new Error(
+      `GenAI APIの呼び出しに失敗しました。ステータス: ${statusCode}、詳細: ${responseBody}`,
+    );
   }
 
   return parseGenAiResponseText(responseBody);

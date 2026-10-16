@@ -57,10 +57,11 @@ describe("respondJson", () => {
   });
 
   it("結果をJSON文字列にしてContentServiceへ渡す", () => {
-    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } = {
-      setMimeType: vi.fn(() => output),
-      setContent: vi.fn(() => output),
-    };
+    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } =
+      {
+        setMimeType: vi.fn(() => output),
+        setContent: vi.fn(() => output),
+      };
     vi.stubGlobal("ContentService", {
       createTextOutput: () => output,
       MimeType: { JSON: "JSON" },

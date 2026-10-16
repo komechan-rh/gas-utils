@@ -8,11 +8,11 @@ export default defineConfig({
         const chunk = bundle["index.js"];
         if (chunk?.type === "chunk") {
           chunk.code +=
-            "\nfunction weeklyScheduleToLine() { SummurizeGoogleCalendarToManagerBundle.weeklyScheduleToLine(); }" +
-            "\nfunction monthlyPayrollToLine() { SummurizeGoogleCalendarToManagerBundle.monthlyPayrollToLine(); }" +
-            "\nfunction unpaidPayrollReminderToLine() { SummurizeGoogleCalendarToManagerBundle.unpaidPayrollReminderToLine(); }" +
-            "\nfunction setupTrigger() { SummurizeGoogleCalendarToManagerBundle.setupTrigger(); }" +
-            "\nfunction doPost(e) { return SummurizeGoogleCalendarToManagerBundle.doPost(e); }\n";
+            "\nfunction weeklyScheduleToLine() { ManagerLineNotificationsBundle.weeklyScheduleToLine(); }" +
+            "\nfunction monthlyPayrollToLine() { ManagerLineNotificationsBundle.monthlyPayrollToLine(); }" +
+            "\nfunction unpaidPayrollReminderToLine() { ManagerLineNotificationsBundle.unpaidPayrollReminderToLine(); }" +
+            "\nfunction setupTrigger() { ManagerLineNotificationsBundle.setupTrigger(); }" +
+            "\nfunction doPost(e) { return ManagerLineNotificationsBundle.doPost(e); }\n";
         }
       },
     },
@@ -24,7 +24,7 @@ export default defineConfig({
     lib: {
       entry: "src/index.ts",
       formats: ["iife"],
-      name: "SummurizeGoogleCalendarToManagerBundle",
+      name: "ManagerLineNotificationsBundle",
     },
     rollupOptions: {
       output: {

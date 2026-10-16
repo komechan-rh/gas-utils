@@ -20,8 +20,8 @@ vi.mock("./payroll/sheet", () => ({
   getMonthlyPayroll: vi.fn(),
 }));
 
-import { handleLineWebhook } from "./line-webhook";
 import { doPost } from "./index";
+import { handleLineWebhook } from "./line-webhook";
 
 describe("doPost", () => {
   afterEach(() => {
@@ -36,10 +36,11 @@ describe("doPost", () => {
       getScriptProperties: () => ({ getProperty, setProperties }),
     });
 
-    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } = {
-      setMimeType: vi.fn(() => output),
-      setContent: vi.fn(() => output),
-    };
+    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } =
+      {
+        setMimeType: vi.fn(() => output),
+        setContent: vi.fn(() => output),
+      };
     vi.stubGlobal("ContentService", {
       createTextOutput: () => output,
       MimeType: { JSON: "JSON" },

@@ -20,9 +20,7 @@ type LineWebhookBody = {
   events?: LineWebhookEvent[];
 };
 
-function handleLineWebhook(
-  e: GoogleAppsScript.Events.DoPost,
-): GoogleAppsScript.Content.TextOutput {
+function handleLineWebhook(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
   console.log(`Webhook受信: ${e.postData.contents}`);
 
   const body: LineWebhookBody = JSON.parse(e.postData.contents);
@@ -32,11 +30,7 @@ function handleLineWebhook(
       console.log(`LINE_GROUP_ID: ${event.source.groupId}`);
     }
 
-    if (
-      event.type === "message" &&
-      event.message?.type === "text" &&
-      event.replyToken
-    ) {
+    if (event.type === "message" && event.message?.type === "text" && event.replyToken) {
       const command = event.message.text && findLineCommand(event.message.text);
       if (command) {
         command({ replyToken: event.replyToken, groupId: event.source?.groupId });
@@ -44,9 +38,9 @@ function handleLineWebhook(
     }
   }
 
-  return ContentService.createTextOutput(
-    JSON.stringify({ status: "ok" }),
-  ).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({ status: "ok" })).setMimeType(
+    ContentService.MimeType.JSON,
+  );
 }
 
 export { handleLineWebhook };

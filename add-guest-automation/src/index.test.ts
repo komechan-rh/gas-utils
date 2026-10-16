@@ -21,10 +21,11 @@ describe("doPost", () => {
       getScriptProperties: () => ({ getProperty, setProperties }),
     });
 
-    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } = {
-      setMimeType: vi.fn(() => output),
-      setContent: vi.fn(() => output),
-    };
+    const output: { setMimeType: ReturnType<typeof vi.fn>; setContent: ReturnType<typeof vi.fn> } =
+      {
+        setMimeType: vi.fn(() => output),
+        setContent: vi.fn(() => output),
+      };
     vi.stubGlobal("ContentService", {
       createTextOutput: () => output,
       MimeType: { JSON: "JSON" },
@@ -53,7 +54,7 @@ describe("doPost", () => {
 
     doPost({ postData: { contents: "not-json" } } as GoogleAppsScript.Events.DoPost);
 
-    const [responseJson] = output.setContent.mock.calls.at(0) ?? [];
+    const [responseJson] = output.setContent.mock.calls[0] ?? [];
     expect(JSON.parse(responseJson as string)).toMatchObject({ ok: false });
   });
 });
@@ -75,6 +76,10 @@ describe("createEmptyResult", () => {
 });
 
 describe("shouldProcessCreatedEvent", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   const defaultOptions = {
     includeAllDayEvents: false,
     skipTitleKeywords: ["招待不要"],

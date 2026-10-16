@@ -36,6 +36,7 @@ Infisical から注入された環境変数のうち、呼び出し側が指定�
 import { syncScriptProperties } from "shared/sync-script-properties-cli";
 
 await syncScriptProperties({
+  webAppUrlKey: "MY_AUTOMATION_WEBAPP_URL",
   requiredKeys: ["FOO"],
   optionalKeys: ["BAR"],
 });
