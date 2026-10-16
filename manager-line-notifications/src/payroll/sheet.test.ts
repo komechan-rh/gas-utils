@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMonthlyPayrollResult,
   findPaymentStatusCell,
+  formatYearMonth,
   getMonthsAgoDate,
   resolveMarkTargetCell,
 } from "./sheet";
@@ -147,6 +148,13 @@ describe("getMonthsAgoDate", () => {
 
   it("年をまたぐ場合も正しく計算する", () => {
     expect(getMonthsAgoDate(2, new Date(2026, 0, 15))).toEqual(new Date(2025, 10, 1));
+  });
+});
+
+describe("formatYearMonth", () => {
+  it("年/月（2桁ゼロ埋め）の形式で返す", () => {
+    expect(formatYearMonth(new Date(2026, 8, 1))).toBe("2026/09");
+    expect(formatYearMonth(new Date(2026, 11, 31))).toBe("2026/12");
   });
 });
 

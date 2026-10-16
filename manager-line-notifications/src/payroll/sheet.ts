@@ -69,9 +69,13 @@ function findTargetRow(
   return dataRows.find((row) => matchesTargetMonth(row, columnMap, targetDate));
 }
 
+function formatYearMonth(date: Date): string {
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function formatWorkMonth(value: unknown): string {
   if (value instanceof Date) {
-    return `${value.getFullYear()}/${String(value.getMonth() + 1).padStart(2, "0")}`;
+    return formatYearMonth(value);
   }
   return String(value ?? "");
 }
@@ -101,14 +105,18 @@ function buildMonthlyPayrollResult(
   };
 }
 
-function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult | undefined {
+function getPayrollSheet(): GoogleAppsScript.Spreadsheet.Sheet {
   const spreadsheetId =
     PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
 
-  const sheet = SpreadsheetApp.openById(spreadsheetId).getSheets()[0];
+  return SpreadsheetApp.openById(spreadsheetId).getSheets()[0];
+}
+
+function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult | undefined {
+  const sheet = getPayrollSheet();
   const values = sheet.getDataRange().getValues();
 
   return buildMonthlyPayrollResult(values, targetDate);
@@ -163,13 +171,7 @@ function resolveMarkTargetCell(
 }
 
 function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
-  const spreadsheetId =
-    PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
-  if (!spreadsheetId) {
-    throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
-  }
-
-  const sheet = SpreadsheetApp.openById(spreadsheetId).getSheets()[0];
+  const sheet = getPayrollSheet();
   const values = sheet.getDataRange().getValues();
 
   const cell = resolveMarkTargetCell(values, targetDate);
@@ -182,6 +184,7 @@ function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
 export {
   buildMonthlyPayrollResult,
   findPaymentStatusCell,
+  formatYearMonth,
   getMonthlyPayroll,
   getMonthsAgoDate,
   markMonthlyPayrollAsPaid,

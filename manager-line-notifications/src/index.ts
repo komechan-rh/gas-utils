@@ -8,18 +8,21 @@ import {
   formatUnpaidPayrollReminderMessage,
 } from "./payroll/formatter";
 import {
+  formatYearMonth,
   getMonthlyPayroll,
   getMonthsAgoDate,
   PAID_STATUS,
   UNPAID_REMINDER_MONTHS_AGO,
 } from "./payroll/sheet";
 
-function weeklyScheduleToLine(): void {
-  const props = PropertiesService.getScriptProperties();
-  const groupId = props.getProperty("LINE_GROUP_ID");
-
+function getLineGroupId(): string {
+  const groupId = PropertiesService.getScriptProperties().getProperty("LINE_GROUP_ID");
   if (!groupId) throw new Error("LINE_GROUP_ID がスクリプトプロパティに設定されていません。");
+  return groupId;
+}
 
+function weeklyScheduleToLine(): void {
+  const groupId = getLineGroupId();
   const monday = getCurrentWeekMonday();
   const events = getWeeklyEvents(monday);
   const message = formatWeeklyMessage(events, monday);
@@ -28,11 +31,7 @@ function weeklyScheduleToLine(): void {
 }
 
 function monthlyPayrollToLine(): void {
-  const props = PropertiesService.getScriptProperties();
-  const groupId = props.getProperty("LINE_GROUP_ID");
-
-  if (!groupId) throw new Error("LINE_GROUP_ID がスクリプトプロパティに設定されていません。");
-
+  const groupId = getLineGroupId();
   const result = getMonthlyPayroll();
   const message = formatMonthlyPayrollMessage(result);
 
@@ -40,13 +39,9 @@ function monthlyPayrollToLine(): void {
 }
 
 function unpaidPayrollReminderToLine(): void {
-  const props = PropertiesService.getScriptProperties();
-  const groupId = props.getProperty("LINE_GROUP_ID");
-
-  if (!groupId) throw new Error("LINE_GROUP_ID がスクリプトプロパティに設定されていません。");
-
+  const groupId = getLineGroupId();
   const targetDate = getMonthsAgoDate(UNPAID_REMINDER_MONTHS_AGO);
-  const targetMonthLabel = `${targetDate.getFullYear()}/${String(targetDate.getMonth() + 1).padStart(2, "0")}`;
+  const targetMonthLabel = formatYearMonth(targetDate);
   const result = getMonthlyPayroll(targetDate);
   if (!result || result.paymentStatus === PAID_STATUS) {
     console.log(
