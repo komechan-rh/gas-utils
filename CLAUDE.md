@@ -12,6 +12,11 @@
   - 唯一の意図的な例外が `shared/`。複数 automation で共通化する価値がある処理（例: スクリプトプロパティ同期）はここに置き、各 automation の pnpm workspace 依存として参照してよい。`shared/` への変更は複数 automation に影響しうることを踏まえ、変更後は依存する automation 側で build / test を確認する
 - 不要な抽象化や、既存 automation にない独自ルールの追加は避ける
 
+## clasp push の manifest 確認
+
+- `clasp push` は `appsscript.json` を含むと毎回上書き確認を出し、非対話実行では `Skipping push.` で止まる。`--force` を付ける前に、GAS 側を一時ディレクトリへ `clasp pull` して `appsscript.json` をローカルのビルド結果（`dist/appsscript.json`）と突き合わせる
+- 差分がある場合（例: `webapp.access` が GAS 側 `MYSELF`・リポジトリ側 `ANYONE_ANONYMOUS`）は、どちらを正とするかをユーザーに確認し、リポジトリ側を揃えてから `--force` で push する。公開範囲などを意図せず上書きしないため
+
 ## 秘匿情報の扱い
 
 - このリポジトリはポートフォリオとして公開されるため、メールアドレス・氏名・組織名・URL・scriptId・APIキー・トークンなどの秘匿情報・個人情報をコードやコミットにハードコードしない
