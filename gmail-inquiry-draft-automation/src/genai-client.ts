@@ -33,7 +33,8 @@ export function parseGenAiResponseText(responseBody: string): string {
 }
 
 export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiConfig): string {
-  const url = `${GENAI_API_BASE_URL}/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
+  // APIキーはURLに含めるとログ等に残りやすいため、ヘッダーで渡す。
+  const url = `${GENAI_API_BASE_URL}/${config.model}:generateContent`;
   const payload = {
     contents: [
       {
@@ -45,6 +46,7 @@ export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiCo
   const response = UrlFetchApp.fetch(url, {
     method: "post",
     contentType: "application/json",
+    headers: { "x-goog-api-key": config.apiKey },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
   });
