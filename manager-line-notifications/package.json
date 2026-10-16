@@ -1,6 +1,6 @@
 {
   "name": "manager-line-notifications",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "scripts": {
     "build": "vite build && cp appsscript.json dist/appsscript.json",
