@@ -9,7 +9,9 @@ interface SyncResult {
 }
 
 function syncScriptProperties(request: SyncRequest): SyncResult {
-  const expectedSecret = (PropertiesService.getScriptProperties().getProperty("SYNC_SECRET") || "").trim();
+  const expectedSecret = (
+    PropertiesService.getScriptProperties().getProperty("SYNC_SECRET") || ""
+  ).trim();
   if (!expectedSecret || request.secret !== expectedSecret) {
     return { ok: false, error: "unauthorized" };
   }
@@ -27,5 +29,5 @@ function respondJson(result: SyncResult): GoogleAppsScript.Content.TextOutput {
   return output;
 }
 
-export { respondJson, syncScriptProperties };
 export type { SyncRequest, SyncResult };
+export { respondJson, syncScriptProperties };

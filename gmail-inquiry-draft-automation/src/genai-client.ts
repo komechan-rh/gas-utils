@@ -24,7 +24,9 @@ export function parseGenAiResponseText(responseBody: string): string {
   const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text || typeof text !== "string") {
-    throw new Error(`GenAI APIのレスポンスからメッセージを取得できませんでした。詳細: ${responseBody}`);
+    throw new Error(
+      `GenAI APIのレスポンスからメッセージを取得できませんでした。詳細: ${responseBody}`,
+    );
   }
 
   return text.trim();
@@ -51,7 +53,9 @@ export function generateInquiryReplyMessage(inquiryBody: string, config: GenAiCo
   const responseBody = response.getContentText();
 
   if (statusCode < 200 || statusCode >= 300) {
-    throw new Error(`GenAI APIの呼び出しに失敗しました。ステータス: ${statusCode}、詳細: ${responseBody}`);
+    throw new Error(
+      `GenAI APIの呼び出しに失敗しました。ステータス: ${statusCode}、詳細: ${responseBody}`,
+    );
   }
 
   return parseGenAiResponseText(responseBody);

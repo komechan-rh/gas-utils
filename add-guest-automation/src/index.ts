@@ -19,9 +19,7 @@ const SKIP_TITLE_KEYWORDS = ["[skip-auto-guest]", "招待不要"];
 const ONLY_IF_CREATOR_IS_ME = true;
 
 function getGuestEmails(): string[] {
-  const raw = PropertiesService.getScriptProperties().getProperty(
-    "GUEST_EMAILS",
-  );
+  const raw = PropertiesService.getScriptProperties().getProperty("GUEST_EMAILS");
   if (!raw) {
     throw new Error(
       "GUEST_EMAILS がスクリプトプロパティに設定されていません。カンマ区切りのメールアドレスを設定してください。",
@@ -50,9 +48,7 @@ export function main(): void {
       throw new Error("EVENT_CREATED_LOOKBACK_MINUTES must be greater than 0.");
     }
 
-    const createdAfter = createCreatedAfterThreshold(
-      EVENT_CREATED_LOOKBACK_MINUTES,
-    );
+    const createdAfter = createCreatedAfterThreshold(EVENT_CREATED_LOOKBACK_MINUTES);
     console.log(
       `カレンダー自動招待を開始します。対象カレンダー: ${CALENDAR_ID}、作成日時の確認範囲: ${createdAfter} 以降、追加対象ゲスト: ${GUEST_EMAILS.join(", ")}`,
     );
@@ -73,27 +69,18 @@ export function main(): void {
         );
         if (!decision.shouldProcess) {
           result.skipped += 1;
-          result.skipReasons[decision.reason] =
-            (result.skipReasons[decision.reason] || 0) + 1;
+          result.skipReasons[decision.reason] = (result.skipReasons[decision.reason] || 0) + 1;
           logAdvancedEvent("SKIP", event, formatSkipReason(decision.reason));
           return;
         }
 
         if (hasAllConfiguredGuests(event, GUEST_EMAILS)) {
           result.alreadyComplete += 1;
-          logAdvancedEvent(
-            "NOOP",
-            event,
-            "設定済みゲストは既に全員追加されています。",
-          );
+          logAdvancedEvent("NOOP", event, "設定済みゲストは既に全員追加されています。");
           return;
         }
 
-        const addResult = addGuestsToCalendarEvent(
-          CALENDAR_ID,
-          event,
-          GUEST_EMAILS,
-        );
+        const addResult = addGuestsToCalendarEvent(CALENDAR_ID, event, GUEST_EMAILS);
         result.updated += addResult.addedEmails.length > 0 ? 1 : 0;
         result.addedGuests += addResult.addedEmails.length;
         result.failedGuests += addResult.failedEmails.length;
@@ -114,9 +101,7 @@ export function main(): void {
     });
   } catch (error) {
     result.errors += 1;
-    console.error(
-      `カレンダー自動招待を中断しました。詳細: ${formatError(error)}`,
-    );
+    console.error(`カレンダー自動招待を中断しました。詳細: ${formatError(error)}`);
   } finally {
     result.durationMs = Date.now() - startedAt.getTime();
     logResult(result);

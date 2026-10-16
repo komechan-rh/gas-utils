@@ -27,7 +27,10 @@ export function createEmptyResult(): ExecutionResult {
   };
 }
 
-export function buildSearchQuery(inquirySubjectKeyword: string, processedLabelName: string): string {
+export function buildSearchQuery(
+  inquirySubjectKeyword: string,
+  processedLabelName: string,
+): string {
   return `subject:"${inquirySubjectKeyword}" -label:"${processedLabelName}"`;
 }
 
@@ -61,7 +64,11 @@ export function buildClosing(config: InquiryDraftConfig): string {
   return `${lineSection}ご確認よろしくお願いいたします。${signature}`;
 }
 
-export function buildDraftBody(senderName: string, viewingMessage: string, config: InquiryDraftConfig): string {
+export function buildDraftBody(
+  senderName: string,
+  viewingMessage: string,
+  config: InquiryDraftConfig,
+): string {
   return `${buildGreeting(senderName, config)}\n\n${viewingMessage}\n\n${buildClosing(config)}`;
 }
 

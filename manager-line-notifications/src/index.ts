@@ -1,9 +1,12 @@
 import { respondJson, syncScriptProperties } from "shared/script-properties-sync";
-import { getCurrentWeekMonday, getWeeklyEvents } from "./calendar/schedule";
 import { formatWeeklyMessage } from "./calendar/formatter";
+import { getCurrentWeekMonday, getWeeklyEvents } from "./calendar/schedule";
 import { pushTextMessage } from "./line-client";
 import { handleLineWebhook } from "./line-webhook";
-import { formatMonthlyPayrollMessage, formatUnpaidPayrollReminderMessage } from "./payroll/formatter";
+import {
+  formatMonthlyPayrollMessage,
+  formatUnpaidPayrollReminderMessage,
+} from "./payroll/formatter";
 import {
   getMonthlyPayroll,
   getMonthsAgoDate,
@@ -89,7 +92,10 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
   try {
     body = JSON.parse(e.postData.contents);
   } catch (error) {
-    return respondJson({ ok: false, error: error instanceof Error ? error.message : String(error) });
+    return respondJson({
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   // LINEのWebhookペイロードは常にトップレベルの events 配列を持つ。
@@ -98,13 +104,15 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
     return handleLineWebhook(e);
   }
 
-  return respondJson(syncScriptProperties(body as { secret?: string; properties?: Record<string, string> }));
+  return respondJson(
+    syncScriptProperties(body as { secret?: string; properties?: Record<string, string> }),
+  );
 }
 
 export {
-  weeklyScheduleToLine,
-  monthlyPayrollToLine,
-  unpaidPayrollReminderToLine,
-  setupTrigger,
   doPost,
+  monthlyPayrollToLine,
+  setupTrigger,
+  unpaidPayrollReminderToLine,
+  weeklyScheduleToLine,
 };

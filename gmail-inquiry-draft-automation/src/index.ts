@@ -63,7 +63,10 @@ function main(): void {
   try {
     const config = getConfig();
     const processedLabel = getOrCreateLabel(config.processedLabelName);
-    const threads = findUnprocessedInquiryThreads(config.inquirySubjectKeyword, config.processedLabelName);
+    const threads = findUnprocessedInquiryThreads(
+      config.inquirySubjectKeyword,
+      config.processedLabelName,
+    );
     const drafts = GmailApp.getDrafts();
 
     result.scanned = threads.length;
@@ -73,7 +76,9 @@ function main(): void {
         if (threadHasExistingDraft(thread, drafts)) {
           result.skipped += 1;
           processedLabel.addToThread(thread);
-          console.log(`既に下書きが存在するためスキップしました。件名「${thread.getFirstMessageSubject()}」`);
+          console.log(
+            `既に下書きが存在するためスキップしました。件名「${thread.getFirstMessageSubject()}」`,
+          );
           return;
         }
 

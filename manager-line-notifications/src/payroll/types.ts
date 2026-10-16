@@ -10,4 +10,4 @@ type MonthlyPayrollResult = {
   payments: PersonPayment[];
 };
 
-export type { PersonPayment, MonthlyPayrollResult };
+export type { MonthlyPayrollResult, PersonPayment };

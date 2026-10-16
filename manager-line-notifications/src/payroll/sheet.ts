@@ -102,9 +102,8 @@ function buildMonthlyPayrollResult(
 }
 
 function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult | undefined {
-  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
-    "PAYROLL_SPREADSHEET_ID",
-  );
+  const spreadsheetId =
+    PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
@@ -130,7 +129,9 @@ function findPaymentStatusCell(
   const columnMap = buildColumnMap(nameRow, labelRow);
   const dataRows = values.slice(dataStartIndex);
 
-  const targetRowIndex = dataRows.findIndex((row) => matchesTargetMonth(row, columnMap, targetDate));
+  const targetRowIndex = dataRows.findIndex((row) =>
+    matchesTargetMonth(row, columnMap, targetDate),
+  );
   if (targetRowIndex < 0) return undefined;
 
   return {
@@ -162,9 +163,8 @@ function resolveMarkTargetCell(
 }
 
 function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
-  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
-    "PAYROLL_SPREADSHEET_ID",
-  );
+  const spreadsheetId =
+    PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
@@ -180,12 +180,12 @@ function markMonthlyPayrollAsPaid(targetDate: Date = new Date()): boolean {
 }
 
 export {
-  getMonthlyPayroll,
   buildMonthlyPayrollResult,
   findPaymentStatusCell,
-  markMonthlyPayrollAsPaid,
-  resolveMarkTargetCell,
+  getMonthlyPayroll,
   getMonthsAgoDate,
-  UNPAID_REMINDER_MONTHS_AGO,
+  markMonthlyPayrollAsPaid,
   PAID_STATUS,
+  resolveMarkTargetCell,
+  UNPAID_REMINDER_MONTHS_AGO,
 };

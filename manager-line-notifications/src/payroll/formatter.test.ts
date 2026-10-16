@@ -4,9 +4,7 @@ import type { MonthlyPayrollResult } from "./types";
 
 describe("formatMonthlyPayrollMessage", () => {
   it("対象月が見つからない場合は案内メッセージを返す", () => {
-    expect(formatMonthlyPayrollMessage(undefined)).toBe(
-      "今月の支払い予定は見つかりませんでした。",
-    );
+    expect(formatMonthlyPayrollMessage(undefined)).toBe("今月の支払い予定は見つかりませんでした。");
   });
 
   it("支払い対象者がいる場合は氏名・金額・合計を含める", () => {
