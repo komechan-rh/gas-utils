@@ -1,0 +1,39 @@
+# 依存ライブラリと GitHub Actions を定期的に更新する PR を Dependabot に作らせる。
+# devDependencies のバージョンは pnpm-workspace.yaml の catalog で一元管理しているため、
+# ルート（/）を対象にすると catalog と各 automation の依存がまとめて更新される。
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # メジャー以外はまとめて 1 PR にし、レビューと CI の回数を抑える
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # 公開直後のバージョンを避け、問題のあるリリースを踏みにくくする
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: Asia/Tokyo
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
