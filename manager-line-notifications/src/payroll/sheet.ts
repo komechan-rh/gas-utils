@@ -105,14 +105,26 @@ function buildMonthlyPayrollResult(
   };
 }
 
-function getPayrollSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+function getPayrollSpreadsheetId(): string {
   const spreadsheetId =
     PropertiesService.getScriptProperties().getProperty("PAYROLL_SPREADSHEET_ID");
   if (!spreadsheetId) {
     throw new Error("PAYROLL_SPREADSHEET_ID がスクリプトプロパティに設定されていません。");
   }
 
-  return SpreadsheetApp.openById(spreadsheetId).getSheets()[0];
+  return spreadsheetId;
+}
+
+function buildSpreadsheetUrl(spreadsheetId: string): string {
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
+function getPayrollSpreadsheetUrl(): string {
+  return buildSpreadsheetUrl(getPayrollSpreadsheetId());
+}
+
+function getPayrollSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+  return SpreadsheetApp.openById(getPayrollSpreadsheetId()).getSheets()[0];
 }
 
 function getMonthlyPayroll(targetDate: Date = new Date()): MonthlyPayrollResult | undefined {
@@ -236,10 +248,12 @@ function markMonthlyPayrollAsPaid(
 
 export {
   buildMonthlyPayrollResult,
+  buildSpreadsheetUrl,
   findPaymentStatusCell,
   formatYearMonth,
   getMonthlyPayroll,
   getMonthsAgoDate,
+  getPayrollSpreadsheetUrl,
   markMonthlyPayrollAsPaid,
   PAID_STATUS,
   resolveMarkTargetCell,

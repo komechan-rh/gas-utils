@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { formatMonthlyPayrollMessage, formatUnpaidPayrollReminderMessage } from "./formatter";
 import type { MonthlyPayrollResult } from "./types";
 
+const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/dummy-sheet-id/edit";
+
 describe("formatMonthlyPayrollMessage", () => {
   it("対象月が見つからない場合は案内メッセージを返す", () => {
-    expect(formatMonthlyPayrollMessage(undefined)).toBe("今月の支払い予定は見つかりませんでした。");
+    expect(formatMonthlyPayrollMessage(undefined, SPREADSHEET_URL)).toBe(
+      "今月の支払い予定は見つかりませんでした。",
+    );
   });
 
   it("支払い対象者がいる場合は氏名・金額・合計を含める", () => {
@@ -18,7 +22,7 @@ describe("formatMonthlyPayrollMessage", () => {
       ],
     };
 
-    const message = formatMonthlyPayrollMessage(result);
+    const message = formatMonthlyPayrollMessage(result, SPREADSHEET_URL);
 
     expect(message).toContain("2026/06分");
     expect(message).toContain("支払い予定日 2026/07/30");
@@ -26,6 +30,7 @@ describe("formatMonthlyPayrollMessage", () => {
     expect(message).toContain("・スタッフA: 40,000円");
     expect(message).toContain("・スタッフB: 40,000円");
     expect(message).toContain("合計: 80,000円");
+    expect(message).toContain(`📄 給与支払い管理シート: ${SPREADSHEET_URL}`);
   });
 
   it("支払い対象者がいない場合は対象者なしと表示する", () => {
@@ -36,7 +41,7 @@ describe("formatMonthlyPayrollMessage", () => {
       payments: [],
     };
 
-    expect(formatMonthlyPayrollMessage(result)).toContain("対象者なし");
+    expect(formatMonthlyPayrollMessage(result, SPREADSHEET_URL)).toContain("対象者なし");
   });
 });
 
@@ -49,7 +54,7 @@ describe("formatUnpaidPayrollReminderMessage", () => {
       payments: [{ personName: "スタッフA", amount: 40000 }],
     };
 
-    const message = formatUnpaidPayrollReminderMessage(result);
+    const message = formatUnpaidPayrollReminderMessage(result, SPREADSHEET_URL);
 
     expect(message).toContain("2026/06分");
     expect(message).toContain("支払い予定日 2026/07/30");
@@ -57,5 +62,6 @@ describe("formatUnpaidPayrollReminderMessage", () => {
     expect(message).toContain("・スタッフA: 40,000円");
     expect(message).toContain("合計: 40,000円");
     expect(message).toContain("「給与支払い済」と発言すると支払い状況を更新できます。");
+    expect(message).toContain(`📄 給与支払い管理シート: ${SPREADSHEET_URL}`);
   });
 });

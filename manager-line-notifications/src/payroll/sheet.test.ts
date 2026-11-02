@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildMonthlyPayrollResult,
+  buildSpreadsheetUrl,
   findPaymentStatusCell,
   formatYearMonth,
   getMonthsAgoDate,
@@ -197,5 +198,13 @@ describe("resolveMarkTargetCell", () => {
     const cell = resolveMarkTargetCell(values, new Date(2026, 7, 5));
 
     expect(cell).toEqual({ row: 4, col: 5 });
+  });
+});
+
+describe("buildSpreadsheetUrl", () => {
+  it("スプレッドシートIDから編集画面のURLを組み立てる", () => {
+    expect(buildSpreadsheetUrl("dummy-sheet-id")).toBe(
+      "https://docs.google.com/spreadsheets/d/dummy-sheet-id/edit",
+    );
   });
 });

@@ -25,7 +25,14 @@ function formatPayrollBody(result: MonthlyPayrollResult): string[] {
   return lines;
 }
 
-function formatMonthlyPayrollMessage(result: MonthlyPayrollResult | undefined): string {
+function formatSpreadsheetLinkLine(spreadsheetUrl: string): string {
+  return `📄 給与支払い管理シート: ${spreadsheetUrl}`;
+}
+
+function formatMonthlyPayrollMessage(
+  result: MonthlyPayrollResult | undefined,
+  spreadsheetUrl: string,
+): string {
   if (!result) return PAYROLL_NOT_FOUND_MESSAGE;
 
   const lines: string[] = [
@@ -33,12 +40,17 @@ function formatMonthlyPayrollMessage(result: MonthlyPayrollResult | undefined): 
     `支払い状況: ${result.paymentStatus}`,
     "",
     ...formatPayrollBody(result),
+    "",
+    formatSpreadsheetLinkLine(spreadsheetUrl),
   ];
 
   return lines.join("\n");
 }
 
-function formatUnpaidPayrollReminderMessage(result: MonthlyPayrollResult): string {
+function formatUnpaidPayrollReminderMessage(
+  result: MonthlyPayrollResult,
+  spreadsheetUrl: string,
+): string {
   const lines: string[] = [
     `⚠️ 給与未払いのお知らせ（${result.workMonth}分 / 支払い予定日 ${formatDateLabel(result.paymentDueDate)}）`,
     `支払い状況: ${result.paymentStatus}`,
@@ -46,6 +58,8 @@ function formatUnpaidPayrollReminderMessage(result: MonthlyPayrollResult): strin
     ...formatPayrollBody(result),
     "",
     "支払いが完了したら、このグループで「給与支払い済」と発言すると支払い状況を更新できます。",
+    "",
+    formatSpreadsheetLinkLine(spreadsheetUrl),
   ];
 
   return lines.join("\n");
