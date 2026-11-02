@@ -268,7 +268,7 @@ function toJapaneseLogLevel(level: string): string {
 }
 
 export function getCalendarEventsService(): AdvancedCalendarEventsCollection {
-  if (!Calendar.Events) {
+  if (!Calendar?.Events) {
     throw new Error("Advanced Calendar Service が有効になっていません。");
   }
 
