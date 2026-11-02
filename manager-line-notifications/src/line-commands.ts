@@ -3,7 +3,11 @@ import { formatWeeklyMessage } from "./calendar/formatter";
 import { getCurrentWeekMonday, getWeeklyEvents } from "./calendar/schedule";
 import { replyTextMessage } from "./line-client";
 import { formatMonthlyPayrollMessage } from "./payroll/formatter";
-import { getMonthlyPayroll, markMonthlyPayrollAsPaid } from "./payroll/sheet";
+import {
+  getMonthlyPayroll,
+  getPayrollSpreadsheetUrl,
+  markMonthlyPayrollAsPaid,
+} from "./payroll/sheet";
 
 type LineCommandContext = {
   replyToken: string;
@@ -29,7 +33,7 @@ function replyGroupId({ replyToken, groupId }: LineCommandContext): void {
 
 function replyMonthlyPayroll({ replyToken }: LineCommandContext): void {
   const result = getMonthlyPayroll();
-  const message = formatMonthlyPayrollMessage(result);
+  const message = formatMonthlyPayrollMessage(result, getPayrollSpreadsheetUrl());
 
   replyTextMessage(replyToken, message);
 }

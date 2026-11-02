@@ -11,6 +11,7 @@ import {
   formatYearMonth,
   getMonthlyPayroll,
   getMonthsAgoDate,
+  getPayrollSpreadsheetUrl,
   PAID_STATUS,
   UNPAID_REMINDER_MONTHS_AGO,
 } from "./payroll/sheet";
@@ -33,7 +34,7 @@ function weeklyScheduleToLine(): void {
 function monthlyPayrollToLine(): void {
   const groupId = getLineGroupId();
   const result = getMonthlyPayroll();
-  const message = formatMonthlyPayrollMessage(result);
+  const message = formatMonthlyPayrollMessage(result, getPayrollSpreadsheetUrl());
 
   pushTextMessage(groupId, message);
 }
@@ -50,7 +51,7 @@ function unpaidPayrollReminderToLine(): void {
     return;
   }
 
-  const message = formatUnpaidPayrollReminderMessage(result);
+  const message = formatUnpaidPayrollReminderMessage(result, getPayrollSpreadsheetUrl());
   pushTextMessage(groupId, message);
 }
 
