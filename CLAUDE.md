@@ -2,7 +2,8 @@
 
 - このリポジトリは個人用の Google Apps Script 自動化プロジェクト群です。
 - 新しく automation（GASプロジェクト）を作成する場合は、既存の automation（`gmail-inquiry-draft-automation` など、後述）を参考に実装する
-  - ディレクトリ構成、`package.json` のスクリプト（build / push / deploy / lint / test など）、`biome.json`、`tsconfig.json`、`.clasp.json` の扱いを踏襲する
+  - ディレクトリ構成、`package.json` のスクリプト（build / push / deploy / lint / test など）、`tsconfig.json`、`.clasp.json` の扱いを踏襲する
+  - Biome の設定はルートの [`biome.json`](./biome.json) 1 つを全 automation で共有する。automation ごとに `biome.json` を作らない（`src/**/*.ts` と `vitest.config.ts` は自動で対象になる）
   - React 実装が必要な場合、既存 automation には例がないため、Vite + React の標準構成をベースにしつつ `package.json` のスクリプト構成・devDependenciesの管理方法は既存 automation に合わせる
 - 1 automation = 1 ディレクトリ（ルート直下）とし、既存の automation と同様の構成にする
 - `.clasp.json` は各プロジェクト固有の `scriptId` を含むため、参照元と同じ内容のまま使い回さず作成し直す（コミットしない）

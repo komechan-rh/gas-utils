@@ -3,12 +3,11 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true,
-    "root": "../"
+    "useIgnoreFile": true
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**/*.ts", "vitest.config.ts"]
+    "includes": ["*/src/**/*.ts", "*/vitest.config.ts"]
   },
   "formatter": {
     "enabled": true,
