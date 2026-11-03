@@ -45,6 +45,28 @@ async function cartQuantity(asin) {
   return Number(await row.getAttribute("data-quantity")) || 0;
 }
 
+// 数量の select は aok-hidden（display:none）で、画面にはカスタムドロップダウンが表示される。
+// 通常の selectOption は可視化を待ち続けてタイムアウトするため、表示中のドロップダウンを操作する。
+// ドロップダウンの要素IDは実行ごとに変わりうるため、select を含むコンテナから辿る。
+// 操作できなかった場合のみ、非表示の select へ直接値を設定する（カートに入れる際はこの値が送られる）。
+async function chooseQuantity(select, quantity) {
+  const container = page.locator("span.a-dropdown-container", { has: page.locator("select#quantity, select[name='quantity']") }).first();
+  try {
+    await container.locator(".a-button-dropdown, [data-action='a-dropdown-button']").first().click({ timeout: 5000 });
+    const option = page
+      .locator(".a-popover:visible a.a-dropdown-link")
+      .filter({ hasText: new RegExp(`^\\s*${quantity}\\s*$`) })
+      .first();
+    await option.click({ timeout: 5000 });
+  } catch {
+    // フォールバックへ進む
+  }
+  if ((await select.inputValue()) !== String(quantity)) {
+    await select.selectOption(String(quantity), { force: true, timeout: 5000 }).catch(() => {});
+  }
+  return (await select.inputValue()) === String(quantity);
+}
+
 function parseYen(text) {
   const digits = (text ?? "").replace(/[^\d]/g, "");
   return digits ? Number(digits) : null;
@@ -80,7 +102,9 @@ async function addOne(order) {
     const select = page.locator("select#quantity, select[name='quantity']").first();
     const hasOption = (await select.count()) > 0 && (await select.locator(`option[value="${quantity}"]`).count()) > 0;
     if (!hasOption) return { status: "要確認", unitPrice, note: `数量${quantity}を選択できません` };
-    await select.selectOption(String(quantity));
+    if (!(await chooseQuantity(select, quantity))) {
+      return { status: "要確認", unitPrice, note: `数量${quantity}を選択できませんでした` };
+    }
   }
   await addButton.click();
   await page.waitForLoadState("domcontentloaded");
