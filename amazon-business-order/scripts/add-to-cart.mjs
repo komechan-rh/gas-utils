@@ -2,7 +2,8 @@
 // 確定はAmazonアプリで人が行う暫定運用のため、このスクリプトはレジへ進むことすらしない。
 // 使い方: AMAZON_STORAGE_STATE_B64=... node add-to-cart.mjs <orders.json> <出力ディレクトリ>
 //   orders.json: [{ "receiptId": "AB3CD", "asin": "B000000000", "quantity": 2, "priceCap": 1000 | null }]
-//   標準出力: 1注文1行のJSON（{ receiptId, status, unitPrice, note }）。status は カート追加済 / 要確認 / 失敗
+//   標準出力: 1注文1行のJSON（{ receiptId, status, unitPrice, note, processedAt }）。status は カート追加済 / 要確認 / 失敗
+//   processedAt はその注文を処理し終えた日本時間（yyyy/MM/dd HH:mm:ss）。シートの「処理日時」にそのまま書く
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
@@ -65,6 +66,25 @@ async function chooseQuantity(select, quantity) {
     await select.selectOption(String(quantity), { force: true, timeout: 5000 }).catch(() => {});
   }
   return (await select.inputValue()) === String(quantity);
+}
+
+// 書き戻す「処理日時」をモデルに組み立てさせると時刻がずれるため、スクリプトが実時刻を出す。
+function formatJstNow() {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date())
+      .map(({ type, value }) => [type, value]),
+  );
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
 function parseYen(text) {
@@ -130,12 +150,12 @@ for (const order of orders) {
     exitCode = 1;
     await shot(`${order.receiptId}-error`);
     if (auth) {
-      console.log(JSON.stringify({ receiptId: order.receiptId, unitPrice: null, ...result }));
+      console.log(JSON.stringify({ receiptId: order.receiptId, unitPrice: null, ...result, processedAt: formatJstNow() }));
       // ログイン切れは以降の注文も同じ結果になるため、残りは処理せず「未処理」のまま残す。
       break;
     }
   }
-  console.log(JSON.stringify({ receiptId: order.receiptId, unitPrice: null, ...result }));
+  console.log(JSON.stringify({ receiptId: order.receiptId, unitPrice: null, ...result, processedAt: formatJstNow() }));
 }
 await browser.close();
 process.exit(exitCode);
