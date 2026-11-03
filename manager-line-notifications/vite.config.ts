@@ -11,6 +11,7 @@ export default defineConfig({
             "\nfunction weeklyScheduleToLine() { ManagerLineNotificationsBundle.weeklyScheduleToLine(); }" +
             "\nfunction monthlyPayrollToLine() { ManagerLineNotificationsBundle.monthlyPayrollToLine(); }" +
             "\nfunction unpaidPayrollReminderToLine() { ManagerLineNotificationsBundle.unpaidPayrollReminderToLine(); }" +
+            "\nfunction notifyOrderResultsToLine() { ManagerLineNotificationsBundle.notifyOrderResultsToLine(); }" +
             "\nfunction setupTrigger() { ManagerLineNotificationsBundle.setupTrigger(); }" +
             "\nfunction doPost(e) { return ManagerLineNotificationsBundle.doPost(e); }\n";
         }

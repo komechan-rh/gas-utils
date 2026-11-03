@@ -5,7 +5,7 @@ type LineWebhookEvent = {
   type: string;
   webhookEventId?: string;
   replyToken?: string;
-  source?: { type?: string; groupId?: string };
+  source?: { type?: string; groupId?: string; userId?: string };
   message?: { type: string; text?: string };
 };
 
@@ -26,20 +26,26 @@ function handleLineWebhook(envelope: unknown): GoogleAppsScript.Content.TextOutp
   const body = JSON.parse(input.body) as { events?: LineWebhookEvent[] };
   if (!Array.isArray(body?.events)) return respondJson({ ok: false, error: "invalid events" });
 
-  const groupId = PropertiesService.getScriptProperties().getProperty("LINE_GROUP_ID");
+  // デバッグ用グループ（任意）からも本番と同じ全コマンドを受け付ける。返信は発言したグループに返る。
+  const properties = PropertiesService.getScriptProperties();
+  const allowedGroupIds = [
+    properties.getProperty("LINE_GROUP_ID"),
+    properties.getProperty("LINE_DEBUG_GROUP_ID"),
+  ].filter((id): id is string => Boolean(id));
   for (const event of body.events) {
     if (event?.type !== "message" || event.message?.type !== "text" || !event.replyToken) continue;
     const text = event.message.text;
     if (!text) continue;
     // 初期設定用のID照会のみ、署名済みの別グループからも許可する。
     if (event.source?.type !== "group" || !event.source.groupId) continue;
-    if (text !== "ID" && (!groupId || event.source.groupId !== groupId)) continue;
+    if (text !== "ID" && !allowedGroupIds.includes(event.source.groupId)) continue;
     if (!event.webhookEventId || !/^[\w-]{1,128}$/.test(event.webhookEventId)) continue;
     const command = findLineCommand(text);
     if (command) {
       command({
         replyToken: event.replyToken,
         groupId: event.source.groupId,
+        userId: event.source.userId,
         webhookEventId: event.webhookEventId,
       });
     }

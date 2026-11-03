@@ -19,5 +19,8 @@ dist/
 # Environment
 .env
 
+# Amazonビジネスのログイン情報（Cookie）。実行PCにのみ存在させる
+amazon-business-order/.secrets/
+
 # Source maps
 *.map
