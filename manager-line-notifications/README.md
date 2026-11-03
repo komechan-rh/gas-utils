@@ -185,7 +185,7 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 
 - Apps Script エディタの「プロジェクトの設定」→「スクリプト プロパティ」で `SYNC_SECRET` にランダムな文字列を手動設定済みであること（初回のみ、Web アプリ経由では設定できない）
 - [Infisical CLI](https://infisical.com/docs/cli/overview) をインストール済みで、`infisical login` / `infisical init` をこのディレクトリで実行済みであること
-- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
+- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`ORDER_SPREADSHEET_ID`（Amazon注文機能を使う場合のみ。未登録なら同期対象から外れる）・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
 
 実行方法:
 
