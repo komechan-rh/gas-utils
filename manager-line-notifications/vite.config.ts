@@ -12,6 +12,7 @@ export default defineConfig({
             "\nfunction monthlyPayrollToLine() { ManagerLineNotificationsBundle.monthlyPayrollToLine(); }" +
             "\nfunction unpaidPayrollReminderToLine() { ManagerLineNotificationsBundle.unpaidPayrollReminderToLine(); }" +
             "\nfunction notifyOrderResultsToLine() { ManagerLineNotificationsBundle.notifyOrderResultsToLine(); }" +
+            "\nfunction fireCartRoutineIfPending() { ManagerLineNotificationsBundle.fireCartRoutineIfPending(); }" +
             "\nfunction setupTrigger() { ManagerLineNotificationsBundle.setupTrigger(); }" +
             "\nfunction doPost(e) { return ManagerLineNotificationsBundle.doPost(e); }\n";
         }
