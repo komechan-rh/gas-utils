@@ -7,6 +7,7 @@ TypeScript、pnpm、clasp を使った Google Apps Script プロジェクトで�
 - 給与支払い通知: 給与管理用スプレッドシートから当月（支払い予定日ベース）の支払い情報を取得し、毎月25日 8:00 に LINE グループへ送信します。また、LINE グループ内で「今月の給与」と発言すると、その場で当月の支払い情報を返信します。いずれも給与支払い管理スプレッドシートへのリンクを添えます。
 - 給与未払いリマインド: 前月（支払い予定日ベース。例: 10月なら9月支払い分＝8月稼働分）の支払い状況が「未済」のままの場合、毎朝10:00 に LINE グループへリマインド通知します（支払い済みなら送信しません）。通知には、このグループで「給与支払い済」と発言すると支払い状況を更新できる旨と、給与支払い管理スプレッドシートへのリンクを添えます。
 - Amazonビジネス「いつもの商品」注文: LINE グループ内で「注文 トイレットペーパー 2」「トイレットペーパーを2つ注文して」などと発言すると、備品カタログと照合して備品購入リストに「未処理」で登録し、受付IDを返信します（詳細は後述「Amazonビジネス『いつもの商品』注文」）。実際の購入は別途の定期実行（Claude Codeなど）が「未処理」の行を処理します。毎時、処理結果（カート追加済・注文済・要確認・失敗）をLINEグループへ通知します。
+- カート追加の定期実行起動: 毎時（日本時間8:00〜19:59のみ）、備品購入リストの「未処理」のうちまだ起動に使っていない受付IDがある場合に、Claude Code routineをAPI経由で起動します（`src/index.ts` の `fireCartRoutineIfPending`。詳細は後述「カート追加の定期実行起動」）。
 
 ## セットアップ
 
@@ -19,7 +20,7 @@ pnpm install
 3. `pnpm run build` で TypeScript をコンパイルします。
 4. `pnpm run push` で Apps Script に反映します。
 5. Apps Script のブラウザ画面（`pnpm run open`）でスクリプトプロパティを設定します（下記「スクリプトプロパティ」参照）。
-6. `setupTrigger` を一度だけ手動実行し、毎週月曜 8:00（カレンダー通知）・毎月25日 8:00（給与支払い通知）・毎朝10:00（給与未払いリマインド）の実行トリガーを登録します。
+6. `setupTrigger` を一度だけ手動実行し、毎週月曜 8:00（カレンダー通知）・毎月25日 8:00（給与支払い通知）・毎朝10:00（給与未払いリマインド）・1時間ごと（カート追加の定期実行起動）の実行トリガーを登録します。
 
 `.clasp.json` の例:
 
@@ -160,6 +161,26 @@ LINE グループでの発言から、Amazonビジネスで定期的に買う備
 - 結果に応じて `ステータス`（`カート追加済`/`注文済`/`要確認`/`失敗`）・`注文番号`・`ご請求額`・`処理日時`・`備考` を書きます
 - `通知日時` 列には書き込みません（GAS側が通知後に記入します）
 
+## カート追加の定期実行起動
+
+Claude Codeの定期実行（routine）のスケジュール起動をやめ、Pro プランの使用量を節約するため、GASが毎時備品購入リストの「未処理」を確認し、ある場合だけroutineをAPI経由で起動します（`src/amazon-order/routine-trigger.ts`・`src/index.ts` の `fireCartRoutineIfPending`）。
+
+- `ROUTINE_FIRE_URL` / `ROUTINE_FIRE_TOKEN` が未設定の場合は何もしません（Amazon注文機能を使わない環境でもエラーにしません）
+- 起動するのは日本時間8:00〜19:59のみです。それ以外の時間帯は何もしません（夜の依頼は翌朝8時台にまとめて処理されます）
+- 起動対象は、未処理の受付IDのうち「まだ起動に使っていないID」です。起動に使った受付IDと起動時刻はスクリプトプロパティにJSONで記録します（記録は起動成功後に行うため、失敗時は次回のトリガーまたは手動実行で再試行できます）
+- 起動に使った受付IDが起動から6時間たっても未処理のままの場合、その受付IDで1回だけ再起動します。再起動後さらに6時間たっても未処理なら、LINEグループへ「受付ID XXX がカートに追加されていません。定期実行の結果を確認してください」と1回だけ通知し、以後その受付IDでは起動しません
+- 1日（日本時間）の起動回数の上限は4回です。上限に達した場合は起動せずログのみ出力します
+- 未処理でなくなった受付ID（ステータスが変わった・行が消えた）の記録は、次回実行時に取り除きます
+- APIが200以外を返した場合は例外を投げ、LINEグループへ「カート追加の定期実行を起動できませんでした（ステータスコード等）」と通知します。トークンや応答本文はログ・通知に出しません
+
+### routine側の設定（API起動トリガーの追加とトークン発行）
+
+1. [claude.ai/code/routines](https://claude.ai/code/routines) で対象のroutineを開き、Edit します。
+2. トリガーに **API** を追加します。
+3. **Generate token** でトークンを発行します。トークンは発行時にしか表示されないため、この時点で控えて `ROUTINE_FIRE_TOKEN` に設定してください。
+4. 発行されたfireエンドポイントのURL（`https://api.anthropic.com/v1/claude_code/routines/<trig_...>/fire` の形式）を `ROUTINE_FIRE_URL` に設定してください。
+5. 切り替え後は、routine側の既存のスケジュールトリガーを外してください（GAS側のトリガーと二重に起動しないようにするため）。
+
 ## スクリプトプロパティ
 
 Apps Script エディタの「プロジェクトの設定」→「スクリプト プロパティ」で以下を設定します。
@@ -172,6 +193,8 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 | `LINE_CHANNEL_ACCESS_TOKEN` | 必須 | LINE Developers で発行したチャネルアクセストークン（長期） |
 | `PAYROLL_SPREADSHEET_ID` | 必須 | 給与支払い管理スプレッドシートのID（スプレッドシートURLの `/d/` と `/edit` の間の文字列） |
 | `ORDER_SPREADSHEET_ID` | 必須（Amazon注文機能を使う場合） | 備品カタログ・備品購入リストを含むスプレッドシートのID |
+| `ROUTINE_FIRE_URL` | 任意（カート追加の定期実行起動を使う場合） | Claude Code routineのAPIトリガーのfireエンドポイントURL（上記「routine側の設定」参照） |
+| `ROUTINE_FIRE_TOKEN` | 任意（カート追加の定期実行起動を使う場合） | 上記URLと合わせて発行したトークン |
 | `SYNC_SECRET` | 下記「Infisicalによる自動同期」を使う場合のみ必須 | `sync-props` からの同期リクエストを認証する共有シークレット。ランダムな文字列を生成し、Apps Script エディタで手動設定したうえで、同じ値を Infisical にも登録する |
 
 ### `doPost` について
@@ -186,7 +209,7 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 
 - Apps Script エディタの「プロジェクトの設定」→「スクリプト プロパティ」で `SYNC_SECRET` にランダムな文字列を手動設定済みであること（初回のみ、Web アプリ経由では設定できない）
 - [Infisical CLI](https://infisical.com/docs/cli/overview) をインストール済みで、`infisical login` / `infisical init` をこのディレクトリで実行済みであること
-- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`ORDER_SPREADSHEET_ID`（Amazon注文機能を使う場合のみ）・`LINE_DEBUG_GROUP_ID`（任意）（この2つは未登録なら同期対象から外れる）・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
+- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`ORDER_SPREADSHEET_ID`（Amazon注文機能を使う場合のみ）・`LINE_DEBUG_GROUP_ID`（任意）・`ROUTINE_FIRE_URL`・`ROUTINE_FIRE_TOKEN`（カート追加の定期実行起動を使う場合のみ）（この4つは未登録なら同期対象から外れる）・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
 
 実行方法:
 
