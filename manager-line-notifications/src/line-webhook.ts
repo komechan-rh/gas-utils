@@ -5,7 +5,7 @@ type LineWebhookEvent = {
   type: string;
   webhookEventId?: string;
   replyToken?: string;
-  source?: { type?: string; groupId?: string };
+  source?: { type?: string; groupId?: string; userId?: string };
   message?: { type: string; text?: string };
 };
 
@@ -40,6 +40,7 @@ function handleLineWebhook(envelope: unknown): GoogleAppsScript.Content.TextOutp
       command({
         replyToken: event.replyToken,
         groupId: event.source.groupId,
+        userId: event.source.userId,
         webhookEventId: event.webhookEventId,
       });
     }

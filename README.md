@@ -7,8 +7,9 @@
 ```
 .
 ├── add-guest-automation/               # カレンダー作成イベントに応じてゲストを自動追加するGAS
+├── amazon-business-order/              # Amazonビジネス「いつもの商品」注文の購入側（ログイン情報書き出しスクリプト。pnpm workspace非対象）
 ├── gmail-inquiry-draft-automation/     # Gmailの問い合わせメールに返信下書きを自動作成するGAS
-├── manager-line-notifications/         # マネージャー向けLINE通知（週次予定など）をまとめたGAS
+├── manager-line-notifications/         # マネージャー向けLINE通知（週次予定・Amazon注文受付など）をまとめたGAS
 └── shared/                             # 複数automationで共有するコード(スクリプトプロパティ同期など)
 ```
 

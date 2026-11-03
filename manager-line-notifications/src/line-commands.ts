@@ -1,4 +1,5 @@
 import packageJson from "../package.json";
+import { findOrderCommand } from "./amazon-order/commands";
 import { formatWeeklyMessage } from "./calendar/formatter";
 import { getCurrentWeekMonday, getWeeklyEvents } from "./calendar/schedule";
 import { replyTextMessage } from "./line-client";
@@ -12,6 +13,7 @@ import {
 type LineCommandContext = {
   replyToken: string;
   groupId?: string;
+  userId?: string;
   webhookEventId: string;
 };
 
@@ -63,8 +65,10 @@ const LINE_COMMANDS: Record<string, LineCommandHandler> = {
   バージョン: replyVersion,
 };
 
+// 注文系コマンドは可変引数（商品名・数量・受付ID）を取るため完全一致の対応表に乗らない。
+// 完全一致に該当しないときだけ、パターン一致で注文系ハンドラを探す。
 function findLineCommand(text: string): LineCommandHandler | undefined {
-  return LINE_COMMANDS[text];
+  return LINE_COMMANDS[text] ?? findOrderCommand(text);
 }
 
 export type { LineCommandContext, LineCommandHandler };

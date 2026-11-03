@@ -1,4 +1,6 @@
 import { respondJson, syncScriptProperties } from "shared/script-properties-sync";
+import { formatOrderResultNotification } from "./amazon-order/formatter";
+import { pullUnnotifiedResults } from "./amazon-order/sheet";
 import { formatWeeklyMessage } from "./calendar/formatter";
 import { getCurrentWeekMonday, getWeeklyEvents } from "./calendar/schedule";
 import { pushTextMessage } from "./line-client";
@@ -55,6 +57,14 @@ function unpaidPayrollReminderToLine(): void {
   pushTextMessage(groupId, message);
 }
 
+function notifyOrderResultsToLine(): void {
+  const results = pullUnnotifiedResults(new Date());
+  if (results.length === 0) return;
+
+  const groupId = getLineGroupId();
+  pushTextMessage(groupId, formatOrderResultNotification(results));
+}
+
 function setupTrigger(): void {
   const triggers = ScriptApp.getProjectTriggers();
   for (const trigger of triggers) {
@@ -62,7 +72,8 @@ function setupTrigger(): void {
     if (
       handlerFunction === "weeklyScheduleToLine" ||
       handlerFunction === "monthlyPayrollToLine" ||
-      handlerFunction === "unpaidPayrollReminderToLine"
+      handlerFunction === "unpaidPayrollReminderToLine" ||
+      handlerFunction === "notifyOrderResultsToLine"
     ) {
       ScriptApp.deleteTrigger(trigger);
     }
@@ -78,8 +89,10 @@ function setupTrigger(): void {
 
   ScriptApp.newTrigger("unpaidPayrollReminderToLine").timeBased().everyDays(1).atHour(10).create();
 
+  ScriptApp.newTrigger("notifyOrderResultsToLine").timeBased().everyHours(1).create();
+
   console.log(
-    "トリガーを登録しました。毎週月曜 8:00 に weeklyScheduleToLine、毎月25日 8:00 に monthlyPayrollToLine、毎朝10:00 に unpaidPayrollReminderToLine が実行されます。",
+    "トリガーを登録しました。毎週月曜 8:00 に weeklyScheduleToLine、毎月25日 8:00 に monthlyPayrollToLine、毎朝10:00 に unpaidPayrollReminderToLine、1時間ごとに notifyOrderResultsToLine が実行されます。",
   );
 }
 
@@ -108,6 +121,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
 export {
   doPost,
   monthlyPayrollToLine,
+  notifyOrderResultsToLine,
   setupTrigger,
   unpaidPayrollReminderToLine,
   weeklyScheduleToLine,
