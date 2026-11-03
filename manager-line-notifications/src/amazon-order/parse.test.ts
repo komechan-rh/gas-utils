@@ -17,6 +17,28 @@ describe("parseOrderRequestCommand", () => {
   });
 
   it.each([
+    ["注文 マスキングテープを1つ", "マスキングテープ", 1],
+    ["注文 マスキングテープを2", "マスキングテープ", 2],
+    ["注文 ティッシュ 2箱", "ティッシュ", 2],
+    ["注文 マスキングテープ1本", "マスキングテープ", 1],
+    ["注文　マスキングテープを３つ", "マスキングテープ", 3],
+  ])("「注文 」で始まり「を」や単位が混ざった「%s」を解析する", (text, productQuery, quantity) => {
+    expect(parseOrderRequestCommand(text)).toEqual({ productQuery, quantity });
+  });
+
+  it.each([
+    ["注文 ゴミ袋（40L）", "ゴミ袋(40L)"],
+    ["注文 A4", "A4"],
+    ["注文 マスキングテープを", "マスキングテープ"],
+  ])("品目名の途中・末尾の数字や末尾の「を」を数量と誤読しない（%s）", (text, productQuery) => {
+    expect(parseOrderRequestCommand(text)).toEqual({ productQuery, quantity: undefined });
+  });
+
+  it("区切りのある品目名末尾の数字の後の数量は数量として読む（注文 A4 2）", () => {
+    expect(parseOrderRequestCommand("注文 A4 2")).toEqual({ productQuery: "A4", quantity: 2 });
+  });
+
+  it.each([
     ["トイレットペーパーを2つ注文して", 2],
     ["トイレットペーパーを2個注文", 2],
     ["トイレットペーパーを3本注文して", 3],
