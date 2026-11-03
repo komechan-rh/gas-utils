@@ -1,10 +1,10 @@
-import { findCatalogMatches, listAllAliases } from "./catalog";
+import { findCatalogMatches } from "./catalog";
 import type { CatalogEntry, OrderRecord, OrderStatus } from "./types";
 import { ORDER_ACTIVE_STATUSES } from "./types";
 
 type OrderRequestEvaluation =
   | { kind: "duplicate_event" }
-  | { kind: "not_found"; knownAliases: string[] }
+  | { kind: "not_found" }
   | { kind: "ambiguous"; candidates: CatalogEntry[] }
   | { kind: "missing_asin" }
   | { kind: "invalid_quantity"; max: number | undefined }
@@ -26,7 +26,7 @@ function evaluateOrderRequest(input: {
 
   const candidates = findCatalogMatches(input.productQuery, input.catalog);
   if (candidates.length === 0) {
-    return { kind: "not_found", knownAliases: listAllAliases(input.catalog) };
+    return { kind: "not_found" };
   }
   if (candidates.length > 1) {
     return { kind: "ambiguous", candidates };

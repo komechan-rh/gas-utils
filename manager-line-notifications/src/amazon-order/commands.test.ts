@@ -57,7 +57,10 @@ describe("findOrderCommand", () => {
   });
 
   it("userIdが無い場合は依頼者IDを空文字にする", () => {
-    vi.mocked(submitOrderRequest).mockReturnValue({ kind: "not_found", knownAliases: [] });
+    vi.mocked(submitOrderRequest).mockReturnValue({
+      kind: "not_found",
+      catalogUrl: "https://docs.google.com/spreadsheets/d/test-sheet/edit#gid=1",
+    });
 
     findOrderCommand("注文 存在しない商品")?.({ replyToken: "reply-1", webhookEventId: "event-1" });
 

@@ -76,8 +76,4 @@ function findCatalogMatches(query: string, catalog: CatalogEntry[]): CatalogEntr
   );
 }
 
-function listAllAliases(catalog: CatalogEntry[]): string[] {
-  return catalog.reduce<string[]>((aliases, entry) => aliases.concat(entry.aliases), []);
-}
-
-export { buildCatalogEntries, buildHeaderIndex, findCatalogMatches, listAllAliases };
+export { buildCatalogEntries, buildHeaderIndex, findCatalogMatches };

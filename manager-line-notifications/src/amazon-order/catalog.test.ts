@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCatalogEntries, findCatalogMatches, listAllAliases } from "./catalog";
+import { buildCatalogEntries, findCatalogMatches } from "./catalog";
 
 const HEADER = [
   "品目",
@@ -70,7 +70,7 @@ describe("buildCatalogEntries", () => {
   });
 });
 
-describe("findCatalogMatches / listAllAliases", () => {
+describe("findCatalogMatches", () => {
   const catalog = buildCatalogEntries([
     HEADER,
     row({
@@ -89,9 +89,5 @@ describe("findCatalogMatches / listAllAliases", () => {
 
   it("一致しない場合は0件", () => {
     expect(findCatalogMatches("存在しない商品", catalog)).toHaveLength(0);
-  });
-
-  it("listAllAliasesはカタログ全体の別名を返す", () => {
-    expect(listAllAliases(catalog)).toEqual(["トイレットペーパー", "トイペ", "ハンドソープ"]);
   });
 });

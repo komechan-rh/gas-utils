@@ -51,6 +51,11 @@ function getSheet(sheetName: string): GoogleAppsScript.Spreadsheet.Sheet {
   return sheet;
 }
 
+function getCatalogSheetUrl(): string {
+  const gid = getSheet(SHEET_NAMES.catalog).getSheetId();
+  return `https://docs.google.com/spreadsheets/d/${getOrderSpreadsheetId()}/edit#gid=${gid}`;
+}
+
 function readCatalog(): CatalogEntry[] {
   return buildCatalogEntries(getSheet(SHEET_NAMES.catalog).getDataRange().getValues());
 }
@@ -167,7 +172,8 @@ function readOrderListSheet(): OrderListSnapshot {
 }
 
 type SubmitOrderRequestResult =
-  | Exclude<OrderRequestEvaluation, { kind: "accepted" }>
+  | Exclude<OrderRequestEvaluation, { kind: "accepted" | "not_found" }>
+  | { kind: "not_found"; catalogUrl: string }
   | {
       kind: "accepted";
       entry: CatalogEntry;
@@ -194,6 +200,9 @@ function submitOrderRequest(input: {
       existingOrders: rows,
       webhookEventId: input.webhookEventId,
     });
+    // 一致しない場合は、品目名を確認できるよう備品カタログのシートへのリンクを返す。
+    if (evaluation.kind === "not_found")
+      return { kind: "not_found", catalogUrl: getCatalogSheetUrl() };
     if (evaluation.kind !== "accepted") return evaluation;
 
     const receiptId = generateReceiptId(new Set(rows.map((row) => row.receiptId)));

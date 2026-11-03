@@ -8,12 +8,8 @@ function formatOrderRequestReply(evaluation: SubmitOrderRequestResult): string {
     case "duplicate_event":
       // 呼び出し側（commands.ts）が返信そのものを省略するため、ここには到達しない。
       throw new Error("duplicate_event は呼び出し側で返信をスキップすること。");
-    case "not_found": {
-      const aliases = [...new Set(evaluation.knownAliases)];
-      return aliases.length === 0
-        ? "カタログに商品が登録されていません。"
-        : `カタログに登録されていない商品です。登録済みの別名: ${aliases.join("、")}`;
-    }
+    case "not_found":
+      return `備品カタログに一致する品目がありません。品目名（または別名）と完全に一致する名前で注文してください。\n備品カタログ: ${evaluation.catalogUrl}`;
     case "ambiguous":
       return `商品名が複数の候補に一致しました。別名を具体的にしてください: ${evaluation.candidates
         .map((entry) => entry.productName)

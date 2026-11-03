@@ -41,6 +41,7 @@ const waitLock = vi.fn();
 
 function makeSheet(values: unknown[][]) {
   return {
+    getSheetId: () => (values === catalogValues ? 111 : 222),
     getDataRange: () => ({ getValues: () => values }),
     getRange: (row: number, column: number) => ({
       setValue: (value: unknown) => {
@@ -82,6 +83,22 @@ afterEach(() => {
 });
 
 describe("submitOrderRequest", () => {
+  it("カタログに一致しない場合は登録せず、備品カタログのシートURLを返す", () => {
+    const result = submitOrderRequest({
+      productQuery: "存在しない商品",
+      quantityInput: 1,
+      requesterId: "user-1",
+      webhookEventId: "event-nf",
+      now: new Date(2026, 0, 1),
+    });
+
+    expect(result).toEqual({
+      kind: "not_found",
+      catalogUrl: "https://docs.google.com/spreadsheets/d/test-sheet/edit#gid=111",
+    });
+    expect(appendRowSpy).not.toHaveBeenCalled();
+  });
+
   it("受付可能な依頼は未処理として1行追加する", () => {
     const now = new Date(2026, 0, 1, 9, 0);
     const result = submitOrderRequest({

@@ -64,15 +64,10 @@ describe("formatOrderRequestReply", () => {
     );
   });
 
-  it("not_found: 登録済みの別名一覧を案内する", () => {
-    expect(formatOrderRequestReply({ kind: "not_found", knownAliases: ["トイペ", "トイペ"] })).toBe(
-      "カタログに登録されていない商品です。登録済みの別名: トイペ",
-    );
-  });
-
-  it("not_found: カタログが空の場合は専用の文言にする", () => {
-    expect(formatOrderRequestReply({ kind: "not_found", knownAliases: [] })).toBe(
-      "カタログに商品が登録されていません。",
+  it("not_found: 完全一致が必要な旨と備品カタログのリンクを案内する", () => {
+    const catalogUrl = "https://docs.google.com/spreadsheets/d/test-sheet/edit#gid=1";
+    expect(formatOrderRequestReply({ kind: "not_found", catalogUrl })).toBe(
+      `備品カタログに一致する品目がありません。品目名（または別名）と完全に一致する名前で注文してください。\n備品カタログ: ${catalogUrl}`,
     );
   });
 
