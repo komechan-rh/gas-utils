@@ -1,11 +1,11 @@
 {
   "name": "manager-line-notifications",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "scripts": {
     "build": "vite build && cp appsscript.json dist/appsscript.json",
     "watch": "tsc --noEmit --watch",
-    "version:bump": "pnpm version patch --no-git-tag-version",
+    "version:bump": "pnpm version patch --no-git-tag-version --no-git-checks",
     "push": "pnpm run version:bump && pnpm build && clasp push -u ${CLASP_USER:?CLASP_USER is not set} --force",
     "deploy": "pnpm run version:bump && clasp deploy -u ${CLASP_USER:?CLASP_USER is not set}",
     "redeploy": "pnpm run version:bump && pnpm build && clasp push -u ${CLASP_USER:?CLASP_USER is not set} --force && clasp redeploy -u ${CLASP_USER:?CLASP_USER is not set} ${DEPLOYMENT_ID:?DEPLOYMENT_ID is not set}",
@@ -24,8 +24,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "@types/google-apps-script": "catalog:",
     "@google/clasp": "catalog:",
+    "@types/google-apps-script": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

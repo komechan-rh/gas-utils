@@ -93,6 +93,24 @@ describe("LINE webhook authentication", () => {
       expect(command).not.toHaveBeenCalled();
     },
   );
+  it("デバッグ用グループからは全コマンドを実行し、返信先はそのグループになる", () => {
+    vi.stubGlobal("PropertiesService", {
+      getScriptProperties: () => ({
+        getProperty: (key: string) =>
+          ({
+            LINE_CHANNEL_SECRET: secret,
+            LINE_GROUP_ID: "allowed-group",
+            LINE_DEBUG_GROUP_ID: "debug-group",
+          })[key],
+      }),
+    });
+    handleLineWebhook(envelope([{ ...event, source: { type: "group", groupId: "debug-group" } }]));
+    expect(command).toHaveBeenCalledWith({
+      replyToken: "reply-1",
+      groupId: "debug-group",
+      webhookEventId: "event-1",
+    });
+  });
   it("初期設定用ID照会は署名済みグループから許可する", () => {
     handleLineWebhook(
       envelope([

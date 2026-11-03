@@ -78,7 +78,7 @@ pnpm dlx wrangler secret put GAS_WEBAPP_URL
 `LINE_CHANNEL_SECRET` はGASと同じチャネルシークレット、`GAS_WEBAPP_URL` は既存GASの `/exec` URLです。シークレット設定完了までは中継は503を返します。
 
 4. LINE Developers の Webhook URL を発行された **Worker のURL** に変更し、疎通確認を実行します。LINEの空イベント検証は200を返します。GASの認証失敗・例外は中継が502として返します。
-5. 設定済みグループで「今週の予定」「今月の給与」を確認します。個別トークや別グループでは業務コマンドが実行されないことを確認します。「ID」のみ、初期設定のため署名済みのグループから利用できます。
+5. 設定済みグループで「今週の予定」「今月の給与」を確認します。個別トークや別グループ（`LINE_GROUP_ID`・`LINE_DEBUG_GROUP_ID` 以外）では業務コマンドが実行されないことを確認します。「ID」のみ、初期設定のため署名済みのグループから利用できます。
 
 設定順の切り替え中は応答が一時停止するため、GASと中継の準備後にLINE側のURLを切り替えてください。運用中のGASコード更新は既存デプロイへの `redeploy` を使います。中継のコード変更時のみ `wrangler deploy` を実行します。GASデプロイを作り直した場合は中継の `GAS_WEBAPP_URL` も更新してください。
 
@@ -167,6 +167,7 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 | キー | 必須 | 値 |
 |------|------|----|
 | `LINE_GROUP_ID` | 必須 | 送信先 LINE グループのID |
+| `LINE_DEBUG_GROUP_ID` | 任意 | デバッグ用 LINE グループのID。設定すると、このグループからも本番と同じ全コマンド（給与シート更新・注文登録を含む）を実行でき、返信はこのグループに返る。定期の push 通知は `LINE_GROUP_ID` にのみ送る |
 | `LINE_CHANNEL_SECRET` | 必須 | LINEチャネルのシークレット（署名検証用。アクセストークンとは別） |
 | `LINE_CHANNEL_ACCESS_TOKEN` | 必須 | LINE Developers で発行したチャネルアクセストークン（長期） |
 | `PAYROLL_SPREADSHEET_ID` | 必須 | 給与支払い管理スプレッドシートのID（スプレッドシートURLの `/d/` と `/edit` の間の文字列） |
@@ -185,7 +186,7 @@ Apps Script エディタの「プロジェクトの設定」→「スクリプ�
 
 - Apps Script エディタの「プロジェクトの設定」→「スクリプト プロパティ」で `SYNC_SECRET` にランダムな文字列を手動設定済みであること（初回のみ、Web アプリ経由では設定できない）
 - [Infisical CLI](https://infisical.com/docs/cli/overview) をインストール済みで、`infisical login` / `infisical init` をこのディレクトリで実行済みであること
-- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`ORDER_SPREADSHEET_ID`（Amazon注文機能を使う場合のみ。未登録なら同期対象から外れる）・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
+- Infisical 側に、`LINE_GROUP_ID`・`LINE_CHANNEL_ACCESS_TOKEN`・`LINE_CHANNEL_SECRET`・`PAYROLL_SPREADSHEET_ID`・`ORDER_SPREADSHEET_ID`（Amazon注文機能を使う場合のみ）・`LINE_DEBUG_GROUP_ID`（任意）（この2つは未登録なら同期対象から外れる）・`SYNC_SECRET`（エディタで設定した値と同じもの）・`MANAGER_LINE_WEBAPP_URL`（GAS設定同期用のURL。WorkerのURLではない）を登録済みであること（automationごとにキー名を分けており、フォルダによる分離は行っていない）
 
 実行方法:
 
