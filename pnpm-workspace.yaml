@@ -3,10 +3,10 @@ packages:
 
 catalog:
   typescript: ^7.0.2
-  vite: ^8.3.5
-  vitest: ^5.0.5
-  "@biomejs/biome": ^2.6.4
-  "@types/google-apps-script": ^2.0.14
+  vite: ^8.3.6
+  vitest: ^5.1.0
+  "@biomejs/biome": ^2.6.6
+  "@types/google-apps-script": ^2.0.15
   "@google/clasp": ^3.4.1
 
 allowBuilds:
